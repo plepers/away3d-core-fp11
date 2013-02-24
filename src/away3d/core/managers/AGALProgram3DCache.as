@@ -1,5 +1,6 @@
 package away3d.core.managers
 {
+	import flash.profiler.Telemetry;
 	import away3d.arcane;
 	import away3d.debug.Debug;
 	import away3d.events.Stage3DEvent;
@@ -25,6 +26,7 @@ package away3d.core.managers
 		private var _keys : Array;
 
 		private static var _currentId : int;
+		private static var _freeIds : Vector.<int>;
 
 
 		public function AGALProgram3DCache(stage3DProxy : Stage3DProxy, AGALProgram3DCacheSingletonEnforcer : AGALProgram3DCacheSingletonEnforcer)
@@ -36,6 +38,7 @@ package away3d.core.managers
 			_ids = [];
 			_usages = [];
 			_keys = [];
+			_freeIds = new Vector.<int>();
 		}
 
 		public static function getInstance(stage3DProxy : Stage3DProxy) : AGALProgram3DCache
@@ -84,22 +87,28 @@ package away3d.core.managers
 			var stageIndex : int = _stage3DProxy._stage3DIndex;
 			var program : Program3D;
 			var key : String = getKey(vertexCode, fragmentCode);
+			
+			var id : int; 
 
 			if (_program3Ds[key] == null) {
-				_keys[_currentId] = key;
-				_usages[_currentId] = 0;
-				_ids[key] = _currentId;
-				++_currentId;
+				
+				id =  ( _freeIds.length > 0 ) ?
+					id = _freeIds.pop() :
+					_currentId++;
+					
+				_keys[id] = key;
+				_usages[id] = 0;
+				_ids[key] = id;
 				program = _stage3DProxy._context3D.createProgram();
 
-				var vertexByteCode : ByteArray = new AGALMiniAssembler(Debug.active).assemble(Context3DProgramType.VERTEX, vertexCode);
-				var fragmentByteCode : ByteArray = new AGALMiniAssembler(Debug.active).assemble(Context3DProgramType.FRAGMENT, fragmentCode);
-
+				var vertexByteCode : ByteArray = new AGALMiniAssembler( Debug.active ).assemble(Context3DProgramType.VERTEX, vertexCode);
+				var fragmentByteCode : ByteArray = new AGALMiniAssembler( Debug.active ).assemble(Context3DProgramType.FRAGMENT, fragmentCode);
+				
 				program.upload(vertexByteCode, fragmentByteCode);
 
 				_program3Ds[key] = program;
 			}
-
+			
 			var oldId : int = pass._program3Dids[stageIndex];
 			var newId : int = _ids[key];
 
@@ -115,7 +124,11 @@ package away3d.core.managers
 		public function freeProgram3D(programId : int) : void
 		{
 			_usages[programId]--;
-			if (_usages[programId] == 0) destroyProgram(_keys[programId]);
+			if (_usages[programId] == 0) {
+				destroyProgram(_keys[programId]);
+				_keys[programId] = null;
+				_freeIds.push( programId );
+			}
 		}
 
 		private function destroyProgram(key : String) : void
