@@ -32,7 +32,19 @@
 		public function DefaultMaterialBase()
 		{
 			super();
-			addPass(_screenPass = new DefaultScreenPass(this));
+			addPass(_screenPass = createScreenPass() );
+		}
+
+		protected function createScreenPass() : DefaultScreenPass {
+			return new DefaultScreenPass(this);
+		}
+		
+		
+		override public function dispose() : void {
+			
+			_screenPass = null;
+			
+			super.dispose();
 		}
 
 		/**
@@ -50,6 +62,10 @@
 			_screenPass.diffuseMethod.alphaThreshold = value;
 			_depthPass.alphaThreshold = value;
 			_distancePass.alphaThreshold = value;
+		}
+		
+		arcane function getScreenPass() : DefaultScreenPass {
+			return _screenPass;
 		}
 
 		arcane override function activateForDepth(stage3DProxy : Stage3DProxy, camera : Camera3D, distanceBased : Boolean = false, textureRatioX : Number = 1, textureRatioY : Number = 1) : void

@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.ShaderChunk;
+	import com.instagal.regs.*;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -129,12 +132,12 @@ package away3d.materials.methods
 			stage3DProxy.setTextureAt(vo.texturesIndex, _envMap.getTextureForStage3D(stage3DProxy));
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			// todo: data2.x could use common reg, so only 1 reg is used
 			var data : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var data2 : ShaderRegisterElement = regCache.getFreeFragmentConstant();
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var cubeMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			var refractionDir : ShaderRegisterElement;
 			var refractionColor : ShaderRegisterElement;
@@ -149,82 +152,84 @@ package away3d.materials.methods
 			regCache.addFragmentTempUsages(refractionColor, 1);
 
 			temp = regCache.getFreeFragmentVectorTemp();
+			
+			
+			var vdr : uint = _viewDirFragmentReg.value();
+			var nrm : uint = _normalFragmentReg.value();
+			var rfc : uint = refractionDir.value();
+			var tgr : uint = targetReg.value();
+			var tmp : uint = temp.value();
+			var dt1 : uint = data.value();
+			var dt2 : uint = data2.value();
+			var smp : uint = cubeMapReg.value() | Tex.CUBE| (vo.useSmoothTextures? Tex.LINEAR: Tex.NEAREST ) | Tex.MIPLINEAR| Tex.CLAMP;
 
-			code += "neg " + _viewDirFragmentReg + ".xyz, " + _viewDirFragmentReg + ".xyz\n";
+			code.neg( vdr ^xyz, vdr ^xyz  );
+			code.dp3( tmp ^x,   vdr ^xyz, nrm ^xyz);
+			code.mul( tmp ^w,   tmp ^x,   tmp ^x);
+			code.sub( tmp ^w,   dt2 ^x,   tmp ^w);
+			code.mul( tmp ^w,   dt1 ^x,   tmp ^w);
+			code.mul( tmp ^w,   dt1 ^x,   tmp ^w);
+			code.sub( tmp ^w,   dt2 ^x,   tmp ^w);
+			code.sqt( tmp ^y,   tmp ^w);  
+			code.mul( tmp ^x,   dt1 ^x,   tmp ^x);
+			code.add( tmp ^x,   tmp ^x,   tmp ^y);
+			code.mul( tmp ^xyz, tmp ^x,   nrm ^xyz);
+			code.mul( rfc ,     dt1 ^x,   vdr );
+			code.sub( rfc ^xyz, rfc ^xyz, tmp ^xyz);
+			code.nrm( rfc ^xyz, rfc ^xyz);
 
-			code +=	"dp3 " + temp + ".x, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz\n" +
-					"mul " + temp + ".w, " + temp + ".x, " + temp + ".x\n" +
-					"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-					"mul " + temp + ".w, " + data + ".x, " + temp + ".w\n" +
-					"mul " + temp + ".w, " + data + ".x, " + temp + ".w\n" +
-					"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-					"sqt " + temp + ".y, " + temp + ".w\n" +
-
-					"mul " + temp + ".x, " + data + ".x, " + temp + ".x\n" +
-					"add " + temp + ".x, " + temp + ".x, " + temp + ".y\n" +
-					"mul " + temp + ".xyz, " + temp + ".x, " + _normalFragmentReg + ".xyz\n" +
-
-					"mul " + refractionDir + ", " + data + ".x, " + _viewDirFragmentReg + "\n" +
-					"sub " + refractionDir + ".xyz, " + refractionDir+ ".xyz, " + temp+ ".xyz\n" +
-					"nrm " + refractionDir + ".xyz, " + refractionDir+ ".xyz\n";
-
-			code +=	"tex " + refractionColor + ", " + refractionDir + ", " + cubeMapReg + " <cube, " + (vo.useSmoothTextures? "linear" : "nearest") + ",miplinear,clamp>\n";
+			code.tex( refractionColor.value(), rfc, smp );
 
 			if (_useDispersion) {
 				// GREEN
 
-				code +=	"dp3 " + temp + ".x, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz\n" +
-						"mul " + temp + ".w, " + temp + ".x, " + temp + ".x\n" +
-						"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-						"mul " + temp + ".w, " + data + ".y, " + temp + ".w\n" +
-						"mul " + temp + ".w, " + data + ".y, " + temp + ".w\n" +
-						"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-						"sqt " + temp + ".y, " + temp + ".w\n" +
-
-						"mul " + temp + ".x, " + data + ".y, " + temp + ".x\n" +
-						"add " + temp + ".x, " + temp + ".x, " + temp + ".y\n" +
-						"mul " + temp + ".xyz, " + temp + ".x, " + _normalFragmentReg + ".xyz\n" +
-
-						"mul " + refractionDir + ", " + data + ".y, " + _viewDirFragmentReg + "\n" +
-						"sub " + refractionDir + ".xyz, " + refractionDir+ ".xyz, " + temp+ ".xyz\n" +
-						"nrm " + refractionDir + ".xyz, " + refractionDir+ ".xyz\n";
-	//
-				code +=	"tex " + temp + ", " + refractionDir + ", " + cubeMapReg + " <cube, " + (vo.useSmoothTextures? "linear" : "nearest") + ",miplinear,clamp>\n" +
-						"mov " + refractionColor + ".y, " + temp + ".y\n";
+				code.dp3( tmp ^x,   vdr ^xyz,  nrm ^xyz);
+				code.mul( tmp ^w,   tmp ^x,    tmp ^x);
+				code.sub( tmp ^w,   dt2 ^x,    tmp ^w);
+				code.mul( tmp ^w,   dt1 ^y,    tmp ^w);
+				code.mul( tmp ^w,   dt1 ^y,    tmp ^w);
+				code.sub( tmp ^w,   dt2 ^x,    tmp ^w);
+				code.sqt( tmp ^y,   tmp ^w);  
+				code.mul( tmp ^x,   dt1 ^y,    tmp ^x);
+				code.add( tmp ^x,   tmp ^x,    tmp ^y);
+				code.mul( tmp ^xyz, tmp ^x,    nrm ^xyz);
+				code.mul( rfc ,     dt1 ^y,    vdr );
+				code.sub( rfc ^xyz, rfc ^xyz,  tmp ^xyz);
+				code.nrm( rfc ^xyz, rfc ^xyz );
+				code.tex( tmp ,     rfc , smp);
+				code.mov( refractionColor.value() ^y, tmp ^y );
 
 
 
 				// BLUE
 
-				code +=	"dp3 " + temp + ".x, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz\n" +
-						"mul " + temp + ".w, " + temp + ".x, " + temp + ".x\n" +
-						"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-						"mul " + temp + ".w, " + data + ".z, " + temp + ".w\n" +
-						"mul " + temp + ".w, " + data + ".z, " + temp + ".w\n" +
-						"sub " + temp + ".w, " + data2 + ".x, " + temp + ".w\n" +
-						"sqt " + temp + ".y, " + temp + ".w\n" +
-
-						"mul " + temp + ".x, " + data + ".z, " + temp + ".x\n" +
-						"add " + temp + ".x, " + temp + ".x, " + temp + ".y\n" +
-						"mul " + temp + ".xyz, " + temp + ".x, " + _normalFragmentReg + ".xyz\n" +
-
-						"mul " + refractionDir + ", " + data + ".z, " + _viewDirFragmentReg + "\n" +
-						"sub " + refractionDir + ".xyz, " + refractionDir+ ".xyz, " + temp+ ".xyz\n" +
-						"nrm " + refractionDir + ".xyz, " + refractionDir+ ".xyz\n";
-
-				code +=	"tex " + temp + ", " + refractionDir + ", " + cubeMapReg + " <cube, " + (vo.useSmoothTextures? "linear" : "nearest") + ",miplinear,clamp>\n" +
-						"mov " + refractionColor + ".z, " + temp + ".z\n";
+				code.dp3( tmp ^x,   vdr ^xyz,  nrm ^xyz);
+				code.mul( tmp ^w,   tmp ^x,    tmp ^x);
+				code.sub( tmp ^w,   dt2 ^x,    tmp ^w);
+				code.mul( tmp ^w,   dt1 ^z,    tmp ^w);
+				code.mul( tmp ^w,   dt1 ^z,    tmp ^w);
+				code.sub( tmp ^w,   dt2 ^x,    tmp ^w);
+				code.sqt( tmp ^y,   tmp ^w);  
+				code.mul( tmp ^x,   dt1 ^z,    tmp ^x);
+				code.add( tmp ^x,   tmp ^x,    tmp ^y);
+				code.mul( tmp ^xyz, tmp ^x,    nrm ^xyz);
+				code.mul( rfc ,     dt1 ^z,    vdr );
+				code.sub( rfc ^xyz, rfc ^xyz,  tmp ^xyz);
+				code.nrm( rfc ^xyz, rfc ^xyz);
+				code.tex( tmp , rfc , smp );
+				code.mov( refractionColor.value() ^z, tmp ^z );
 			}
 
 			regCache.removeFragmentTempUsage(refractionDir);
 
-			code += "sub " + refractionColor + ".xyz, " + refractionColor + ".xyz, " + targetReg + ".xyz\n" +
-					"mul " + refractionColor + ".xyz, " + refractionColor + ".xyz, " + data + ".w\n" +
-					"add " + targetReg + ".xyz, " + targetReg+".xyz, " + refractionColor + ".xyz\n";
+			code.sub( refractionColor.value()^xyz, refractionColor.value() ^xyz, tgr ^xyz);
+			code.mul( refractionColor.value()^xyz, refractionColor.value() ^xyz, dt1 ^w);
+			code.add( tgr ^xyz, tgr ^xyz, refractionColor.value() ^xyz );
+			
 			regCache.removeFragmentTempUsage(refractionColor);
 
 			// restore
-			code += "neg " + _viewDirFragmentReg + ".xyz, " + _viewDirFragmentReg + ".xyz\n";
+			code.neg(  vdr ^xyz, vdr ^xyz );
 
 			return code;
 		}

@@ -1,5 +1,6 @@
 package away3d.tools.helpers
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.materials.utils.DefaultMaterialManager;
 	import away3d.arcane;
 	import away3d.containers.ObjectContainer3D;
@@ -113,11 +114,11 @@ package away3d.tools.helpers
 			var holder:Vector3D = new Vector3D();
 			var yind:uint;
 			var zind:uint;
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			var updateNormals:Boolean;
 			
 			for (var i :uint = 0; i<numSubGeoms; ++i){
-					subGeom = SubGeometry(geometries[i]);
+					subGeom = VectorSubGeometry(geometries[i]);
 					vertices = subGeom.vertexData;
 					normals = subGeom.vertexNormalData;
 					verticesLength = vertices.length;
@@ -192,10 +193,10 @@ package away3d.tools.helpers
 			var len: uint;
 			var j: uint;
 			 
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 
 			for (var i :uint = 0; i<numSubGeoms; ++i){
-					subGeom = SubGeometry(geometries[i]);
+					subGeom = VectorSubGeometry(geometries[i]);
 					vertices = subGeom.vertexData;
 					len = vertices.length;
 					
@@ -253,9 +254,9 @@ package away3d.tools.helpers
 			var vertices:Vector.<Number>;
 			var verticesLength: uint;
 			var j: uint;
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			for (var i :uint = 0; i<numSubGeoms; ++i){
-				subGeom = SubGeometry(geometries[i]);
+				subGeom = VectorSubGeometry(geometries[i]);
 				vertices = subGeom.vertexData;
 				verticesLength = vertices.length;
 					 
@@ -324,10 +325,10 @@ package away3d.tools.helpers
 			var j:uint;
 			var ind:uint;
 			var indV0:uint;
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			
 			for (i = 0; i<numSubGeoms; ++i){
-				subGeom = SubGeometry(subGeometries[i]);
+				subGeom = VectorSubGeometry(subGeometries[i]);
 				indices = subGeom.indexData;
 				normals = subGeom.vertexNormalData;
 				tangents = subGeom.vertexTangentData;
@@ -373,7 +374,7 @@ package away3d.tools.helpers
 		*/
 		public static function build(vertices:Vector.<Number>, indices:Vector.<uint>, uvs:Vector.<Number> = null, name:String = "", material:MaterialBase = null, shareVertices:Boolean = true, useDefaultMap:Boolean = true):Mesh
 		{
-			var subGeom:SubGeometry = new SubGeometry();
+			var subGeom:VectorSubGeometry = new VectorSubGeometry();
 			subGeom.autoDeriveVertexNormals = true;
 			subGeom.autoDeriveVertexTangents = true;
 			var geometry:Geometry = new Geometry();
@@ -416,7 +417,7 @@ package away3d.tools.helpers
 						dShared = new Dictionary();
 					}
 				
-					subGeom = new SubGeometry();
+					subGeom = new VectorSubGeometry();
 					subGeom.autoDeriveVertexNormals = true;
 					subGeom.autoDeriveVertexTangents = true;
 					geometry.addSubGeometry(subGeom);
@@ -484,17 +485,17 @@ package away3d.tools.helpers
 			var uvs:Vector.<Number>;
 			var normals:Vector.<Number>;
 			var tangents:Vector.<Number>;
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			
 			var nGeom:Geometry;
-			var nSubGeom:SubGeometry;
+			var nSubGeom:VectorSubGeometry;
 			var nm:Mesh;
 			
 			var nMeshMat:MaterialBase;
 			var j : uint = 0;
 			
 			for (var i : uint = 0; i < numSubGeoms; ++i){
-				subGeom = geometries[i];
+				subGeom = geometries[i] as VectorSubGeometry;
 				vertices = subGeom.vertexData;
 				indices = subGeom.indexData;
 				uvs = subGeom.UVData;
@@ -528,7 +529,7 @@ package away3d.tools.helpers
 				nGeom = new Geometry();
 				nm = new Mesh(nGeom, mesh.subMeshes[i].material? mesh.subMeshes[i].material : nMeshMat);
 				
-				nSubGeom = new SubGeometry();
+				nSubGeom = new VectorSubGeometry();
 				nSubGeom.updateVertexData(vertices);
 				nSubGeom.updateIndexData(indices);
 				nSubGeom.updateUVData(uvs);

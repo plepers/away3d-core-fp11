@@ -6,7 +6,7 @@ package away3d.textures
 	import away3d.library.assets.AssetType;
 	import away3d.library.assets.IAsset;
 	import away3d.library.assets.NamedAssetBase;
-	
+	import com.instagal.Tex;
 	import flash.display3D.Context3D;
 	import flash.display3D.textures.TextureBase;
 
@@ -14,11 +14,20 @@ package away3d.textures
 
 	public class TextureProxyBase extends NamedAssetBase implements IAsset
 	{
+		
+		protected var _samplerType : uint = Tex.RGBA;
+
 		protected var _textures : Vector.<TextureBase>;
 		protected var _dirty : Vector.<Context3D>;
 
 		protected var _width : int;
 		protected var _height : int;
+
+
+		public function get samplerType() : uint {
+			return _samplerType;
+		}
+		
 
 		public function TextureProxyBase()
 		{
@@ -103,8 +112,11 @@ package away3d.textures
 		 */
 		public function dispose() : void
 		{
-			for (var i : int = 0; i < 8; ++i)
-				if (_textures[i]) _textures[i].dispose();
+			for (var i : int = 0; i < 8; ++i) {
+				if (_textures[i]) {
+					_textures[i].dispose();
+				}
+			}
 		}
 	}
 }

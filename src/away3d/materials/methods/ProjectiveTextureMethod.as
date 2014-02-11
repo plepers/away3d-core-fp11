@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
@@ -96,7 +99,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		arcane override function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			var projReg : ShaderRegisterElement = regCache.getFreeVertexConstant();
 			regCache.getFreeVertexConstant();
@@ -105,35 +108,39 @@ package away3d.materials.methods
 			regCache.getFreeVertexVectorTemp();
 			vo.vertexConstantsIndex = (projReg.index-vo.vertexConstantsOffset)*4;
 			_uvVarying = regCache.getFreeVarying();
-
-			return "m44 " + _uvVarying + ", vt0, " + projReg + "\n";
+			
+			var c : ShaderChunk = new ShaderChunk();
+			c.m44( _uvVarying.value(), t0, projReg.value() );
+			return c;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var mapRegister : ShaderRegisterElement = regCache.getFreeTextureReg();
-			var col : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
+			var col : uint = regCache.getFreeFragmentVectorTemp().value();
 			var toTexReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			vo.fragmentConstantsIndex = toTexReg.index*4;
 			vo.texturesIndex = mapRegister.index;
+			
+			var tgt : uint = targetReg.value();
 
-			code += "div " + col + ", " + _uvVarying + ", " + _uvVarying + ".w						\n" +
-					"mul " + col + ".xy, " + col + ".xy, " + toTexReg+".xy	\n" +
-					"add " + col + ".xy, " + col + ".xy, " + toTexReg+".xx	\n" +
-					"tex " + col + ", " + col + ", " + mapRegister + " <2d,linear,miplinear,clamp>\n";
+			code.div( col    , _uvVarying.value()   , _uvVarying.value() ^w );
+			code.mul( col ^xy, col ^xy      , toTexReg.value()^xy	);
+			code.add( col ^xy, col ^xy      , toTexReg.value()^x	);
+			code.tex( col    , col          , mapRegister.value() |Tex.LINEAR|Tex.MIPLINEAR|Tex.CLAMP );
 
 			if (_mode == MULTIPLY)
-				code += "mul " + targetReg + ".xyz, " + targetReg + ".xyz, " + col + ".xyz			\n";
+				code.mul( tgt ^xyz, tgt ^xyz, col ^xyz	);
 			else if (_mode == ADD)
-				code += "add " + targetReg + ".xyz, " + targetReg + ".xyz, " + col + ".xyz			\n";
-			else if (_mode == MIX) {
-				code += "sub " + col + ".xyz, " + col + ".xyz, " + targetReg + ".xyz				\n" +
-						"mul " + col + ".xyz, " + col + ".xyz, " + col + ".w						\n" +
-						"add " + targetReg + ".xyz, " + targetReg + ".xyz, " + col + ".xyz			\n";
+				code.add( tgt ^xyz, tgt ^xyz, col ^xyz	);
+			else if (_mode == MIX) { 
+				code.sub( col ^xyz, col ^xyz, tgt ^xyz	);
+				code.mul( col ^xyz, col ^xyz, col ^w	);
+				code.add( tgt ^xyz, tgt ^xyz, col ^xyz	);
 			}
 			else {
 				throw new Error("Unknown mode \""+_mode+"\"");

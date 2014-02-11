@@ -6,6 +6,10 @@
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.lightpickers.LightPickerBase;
 	import away3d.textures.Texture2DBase;
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
 	import flash.display3D.Context3DProgramType;
 	import flash.display3D.Context3DVertexBufferFormat;
 	import flash.geom.Vector3D;
@@ -66,15 +70,18 @@
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
-			code += "m44 vt7, vt0, vc0		\n" +
-					"mul op, vt7, vc4		\n" +
-					"m44 vt1, vt0, vc5		\n" +
-					"sub v0, vt1, vc9		\n";
+			var sh : Shader = new Shader( Context3DProgramType.VERTEX );
+			sh.append( code );
+			
+			sh.m44( t7, t0, c0   );
+			sh.mul( op, t7, c4	); 
+			sh.m44( t1, t0, c5   );
+			sh.sub( v0, t1, c9	); 
 
 			if (_alphaThreshold > 0) {
-				code += "mov v1, va1\n";
+				sh.mov( v1, a1 );
 				_numUsedTextures = 1;
 				_numUsedStreams = 2;
 			}
@@ -83,34 +90,35 @@
 				_numUsedStreams = 1;
 			}
 
-			return code;
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			var code : String;
-			var wrap : String = _repeat ? "wrap" : "clamp";
-			var filter : String;
+			var code : Shader = new Shader( Context3DProgramType.FRAGMENT );
+			var wrap : uint = _repeat ? Tex.WRAP : Tex.CLAMP;
+			var filter : uint;
 
-			if (_smooth) filter = _mipmap ? "linear,miplinear" : "linear";
-			else filter = _mipmap ? "nearest,mipnearest" : "nearest";
+			if (_smooth) filter = _mipmap ? Tex.LINEAR|Tex.MIPLINEAR : Tex.LINEAR;
+			else filter = _mipmap ? Tex.NEAREST|Tex.MIPNEAREST:Tex.NEAREST;
+
 
 			// squared distance to view
-			code =	"dp3 ft2.z, v0.xyz, v0.xyz	\n" +
-					"mul ft0, fc0, ft2.z	\n" +
-					"frc ft0, ft0			\n" +
-					"mul ft1, ft0.yzww, fc1	\n";
+			code.dp3( t2^z, v0^xyz, v0^xyz	);
+			code.mul( t0, 	c0, 	t2^z	);
+			code.frc( t0, 	t0			    );
+			code.mul( t1, 	t0^yzw, c1		);
 
 			if (_alphaThreshold > 0) {
-				code += "tex ft3, v1, fs0 <2d,"+filter+","+wrap+">\n" +
-						"sub ft3.w, ft3.w, fc2.x\n" +
-						"kil ft3.w\n";
+				code.tex( t3, v1, s0 | filter | wrap );
+				code.sub( t3^w, t3^w, c2^x );
+				code.kil( t3^w );
 			}
 
-			code += "sub oc, ft0, ft1		\n";
+			code.sub( oc, t0, t1	);
 
 			return code;
 		}

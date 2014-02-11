@@ -3,7 +3,7 @@ package away3d.extrusions
 
 	import away3d.bounds.BoundingVolumeBase;
 	import away3d.core.base.Geometry;
-	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.SubMesh;
 	import away3d.core.base.data.UV;
 	import away3d.core.base.data.Vertex;
@@ -50,8 +50,8 @@ package away3d.extrusions
 		private var _matIndex : uint = 0;
 		private var _segv : Number;
 		private var _geomDirty : Boolean = true;
-		private var _subGeometry : SubGeometry;
-		private var _MaterialsSubGeometries : Vector.<SubGeometryList> = new Vector.<SubGeometryList>();
+		private var _subGeometry : VectorSubGeometry;
+		private var _MaterialsSubGeometries : Vector.<VectorSubGeometryList> = new Vector.<VectorSubGeometryList>();
 		private var _uva : UV;
 		private var _uvb : UV;
 		private var _uvc : UV;
@@ -97,7 +97,7 @@ package away3d.extrusions
 		function PathExtrude(material : MaterialBase = null, path : IPath = null, profile : Vector.<Vector3D> = null, subdivision : uint = 2, coverAll : Boolean = true, coverSegment : Boolean = false, alignToPath : Boolean = true, centerMesh : Boolean = false, mapFit : Boolean = false, flip : Boolean = false, closePath : Boolean = false, materials : Vector.<MaterialBase> = null, scales : Vector.<Vector3D> = null, smoothScale : Boolean = true, rotations : Vector.<Vector3D> = null, smoothSurface : Boolean = true, distribute : Boolean = false, distributeU : Boolean = true, keepExtremes : Boolean = false)
 		{
 			var geom : Geometry = new Geometry();
-			_subGeometry = new SubGeometry();
+			_subGeometry = new VectorSubGeometry();
 			super(geom, material);
 
 			_activeMaterial = this.material;
@@ -704,9 +704,9 @@ package away3d.extrusions
 			}
 
 			if (_materials && _materials.length > 0) {
-				var sglist : SubGeometryList = new SubGeometryList();
+				var sglist : VectorSubGeometryList = new VectorSubGeometryList();
 				_MaterialsSubGeometries.push(sglist);
-				sglist.subGeometry = new SubGeometry();
+				sglist.subGeometry = new VectorSubGeometry();
 				_subGeometry = sglist.subGeometry;
 
 				sglist.uvs = _uvs = new Vector.<Number>();
@@ -731,9 +731,9 @@ package away3d.extrusions
 			}
 		}
 
-		private function getSubGeometryListFromMaterial(mat : MaterialBase) : SubGeometryList
+		private function getVectorSubGeometryListFromMaterial(mat : MaterialBase) : VectorSubGeometryList
 		{
-			var sglist : SubGeometryList;
+			var sglist : VectorSubGeometryList;
 
 			for (var i : uint = 0; i < _MaterialsSubGeometries.length; ++i) {
 				if (_MaterialsSubGeometries[i].material == mat) {
@@ -743,9 +743,9 @@ package away3d.extrusions
 			}
 
 			if (!sglist) {
-				sglist = new SubGeometryList();
+				sglist = new VectorSubGeometryList();
 				_MaterialsSubGeometries.push(sglist);
-				sglist.subGeometry = new SubGeometry();
+				sglist.subGeometry = new VectorSubGeometry();
 				sglist.uvs = new Vector.<Number>();
 				sglist.vertices = new Vector.<Number>();
 				sglist.indices = new Vector.<uint>();
@@ -777,17 +777,17 @@ package away3d.extrusions
 
 		private function addFace(v0 : Vertex, v1 : Vertex, v2 : Vertex, uv0 : UV, uv1 : UV, uv2 : UV, mat : MaterialBase) : void
 		{
-			var subGeom : SubGeometry;
+			var subGeom : VectorSubGeometry;
 			var uvs : Vector.<Number>;
 			var vertices : Vector.<Number>;
 			var normals : Vector.<Number>;
 			var indices : Vector.<uint>;
-			var sglist : SubGeometryList;
+			var sglist : VectorSubGeometryList;
 			var startMat : Boolean;
 
 			if (_activeMaterial != mat && _materials && _materials.length > 0) {
 				_activeMaterial = mat;
-				sglist = getSubGeometryListFromMaterial(mat);
+				sglist = getVectorSubGeometryListFromMaterial(mat);
 				_subGeometry = subGeom = sglist.subGeometry;
 				_uvs = uvs = sglist.uvs;
 				_vertices = vertices = sglist.vertices;
@@ -813,14 +813,14 @@ package away3d.extrusions
 				this.geometry.addSubGeometry(subGeom);
 				this.subMeshes[this.subMeshes.length - 1].material = mat;
 
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				subGeom.autoDeriveVertexTangents = true;
 				if (!_smoothSurface)
 					subGeom.autoDeriveVertexNormals = true;
 
 				if (_MaterialsSubGeometries && _MaterialsSubGeometries.length > 1) {
 
-					sglist = getSubGeometryListFromMaterial(mat);
+					sglist = getVectorSubGeometryListFromMaterial(mat);
 					sglist.subGeometry = _subGeometry = subGeom;
 					sglist.uvs = _uvs = uvs = new Vector.<Number>();
 					sglist.vertices = _vertices = vertices = new Vector.<Number>();
@@ -1253,8 +1253,8 @@ package away3d.extrusions
 			_varr = null;
 
 			if (_MaterialsSubGeometries && _MaterialsSubGeometries.length > 0) {
-				var sglist : SubGeometryList;
-				var sg : SubGeometry;
+				var sglist : VectorSubGeometryList;
+				var sg : VectorSubGeometry;
 				for (i = 0; i < _MaterialsSubGeometries.length; ++i) {
 					sglist = _MaterialsSubGeometries[i];
 					sg = sglist.subGeometry;
@@ -1288,15 +1288,15 @@ package away3d.extrusions
 	}
 }
 
-import away3d.core.base.SubGeometry;
+import away3d.core.base.VectorSubGeometry;
 import away3d.materials.MaterialBase;
 
-class SubGeometryList
+class VectorSubGeometryList
 {
 	public var uvs : Vector.<Number>;
 	public var vertices : Vector.<Number>;
 	public var normals : Vector.<Number>;
 	public var indices : Vector.<uint>;
-	public var subGeometry : SubGeometry;
+	public var subGeometry : VectorSubGeometry;
 	public var material : MaterialBase;
 }

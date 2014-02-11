@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -75,7 +77,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			_dataReg = regCache.getFreeFragmentConstant();
 			vo.secondaryFragmentConstantsIndex = _dataReg.index*4;
@@ -100,29 +102,26 @@ package away3d.materials.methods
 		 * @param regCache The register cache used for the shader compilation.
 		 * @return The AGAL fragment code for the method.
 		 */
-		private function clampDiffuse(vo : MethodVO, t : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		private function clampDiffuse( code : ShaderChunk, vo : MethodVO, t : ShaderRegisterElement, regCache : ShaderRegisterCache) : void
 		{
-			return 	"mul " + t+".w, " + t+".w, " + _dataReg+".x\n" +
-					"frc " + t+".z, " + t+".w\n" +
-					"sub " + t+".y, " +  t+".w, " + t+".z\n" +
-					"mov " + t+".x, " + _dataReg+".x\n" +
-					"sub " + t+".x, " + t+".x, " + _dataReg+".y\n" +
-					"rcp " + t+".x," + t+".x\n" +
-					"mul " + t+".w, " + t+".y, " + t+".x\n" +
-
-			// previous clamped strength
-					"sub "  + t+".y, " + t+".w, " + t+".x\n" +
-
-			// fract/epsilon (so 0 - epsilon will become 0 - 1)
-					"div " + t+".z, " + t+".z, " + _dataReg+".w\n" +
-					"sat " + t+".z, " + t+".z\n" +
-
-					"mul " + t+".w, " + t+".w, " + t+".z\n" +
-			// 1-z
-					"sub " + t+".z, " + _dataReg+".y, " + t+".z\n" +
-					"mul " + t+".y, " + t+".y, " + t+".z\n" +
-					"add " + t+".w, " + t+".w, " + t+".y\n" +
-					"sat " + t+".w, " + t+".w\n";
+			var tr : uint = t.value();
+			var dr : uint = _dataReg.value();
+			
+			code.mul( tr^w, tr^w, dr^x	);
+			code.frc( tr^z, tr^w		);
+			code.sub( tr^y, tr^w, tr^z	);
+			code.mov( tr^x, dr^x		);
+			code.sub( tr^x, tr^x, dr^y	);
+			code.rcp( tr^x, tr^x		);
+			code.mul( tr^w, tr^y, tr^x	);
+			code.sub( tr^y, tr^w, tr^x	);
+			code.div( tr^z, tr^z, dr^w	);
+			code.sat( tr^z, tr^z		);
+			code.mul( tr^w, tr^w, tr^z	);
+			code.sub( tr^z, dr^y, tr^z	);
+			code.mul( tr^y, tr^y, tr^z	);
+			code.add( tr^w, tr^w, tr^y	);
+			code.sat( tr^w, tr^w		);
 		}
 	}
 }

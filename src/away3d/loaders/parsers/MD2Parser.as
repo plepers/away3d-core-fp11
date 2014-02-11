@@ -1,22 +1,22 @@
-package away3d.loaders.parsers
-{
-	import away3d.materials.utils.DefaultMaterialManager;
-	import away3d.animators.nodes.VertexClipNode;
-	import away3d.animators.VertexAnimationState;
+package away3d.loaders.parsers {
+
 	import away3d.animators.VertexAnimationSet;
-	import flash.utils.Dictionary;
+	import away3d.animators.VertexAnimationState;
+	import away3d.animators.nodes.VertexClipNode;
 	import away3d.arcane;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.entities.Mesh;
 	import away3d.loaders.misc.ResourceDependency;
 	import away3d.loaders.parsers.utils.ParserUtil;
 	import away3d.materials.TextureMaterial;
-	import away3d.textures.BitmapTexture;
+	import away3d.materials.utils.DefaultMaterialManager;
 	import away3d.textures.Texture2DBase;
-	
+
 	import flash.net.URLRequest;
 	import flash.utils.ByteArray;
+	import flash.utils.Dictionary;
 	import flash.utils.Endian;
 
 	use namespace arcane;
@@ -60,7 +60,7 @@ package away3d.loaders.parsers
 		
 		// the current subgeom being built
 		private var _animationSet : VertexAnimationSet = new VertexAnimationSet();
-		private var _firstSubGeom : SubGeometry;
+		private var _firstSubGeom : VectorSubGeometry;
 		private var _uvs : Vector.<Number>;
 		private var _finalUV : Vector.<Number>;
 		
@@ -355,7 +355,7 @@ package away3d.loaders.parsers
 			var sx : Number, sy : Number, sz : Number;
 			var tx : Number, ty : Number, tz : Number;
 			var geometry : Geometry;
-			var subGeom : SubGeometry;
+			var subGeom : VectorSubGeometry;
 			var vertLen : uint = _vertIndices.length;
 			var fvertices : Vector.<Number>;
 			var tvertices : Vector.<Number>;
@@ -367,7 +367,7 @@ package away3d.loaders.parsers
 			_byteData.position = _offsetFrames;
 			
 			for (i = 0; i < _numFrames; i++) {
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				_firstSubGeom ||= subGeom;
 				geometry = new Geometry();
 				geometry.addSubGeometry(subGeom);
@@ -457,7 +457,7 @@ package away3d.loaders.parsers
 
 		private function createDefaultSubGeometry() : void
 		{
-			var sub : SubGeometry = new SubGeometry();
+			var sub : VectorSubGeometry = new VectorSubGeometry();
 			sub.updateVertexData(_firstSubGeom.vertexData);
 			sub.updateUVData(_firstSubGeom.UVData);
 			sub.updateIndexData(_indices);

@@ -1,5 +1,6 @@
 ﻿package away3d.extrusions
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
 	import away3d.entities.Mesh;
@@ -21,7 +22,7 @@
 		private var _maxElevation:uint;
 		protected var _geomDirty : Boolean = true;
 		protected var _uvDirty : Boolean = true;
-		private var _subGeometry : SubGeometry;
+		private var _subGeometry : VectorSubGeometry;
 		
 		/**
 		* Class Elevation generates (and becomes) a mesh from an heightmap. <code>Elevation</code>
@@ -40,7 +41,7 @@
 		*/
         public function Elevation(material : MaterialBase, heightMap : BitmapData, width : Number = 1000, height : Number = 100, depth : Number = 1000, segmentsW : uint = 30, segmentsH : uint = 30, maxElevation:uint = 255, minElevation:uint = 0, smoothMap:Boolean = false)
         {
-			_subGeometry = new SubGeometry();
+			_subGeometry = new VectorSubGeometry();
 			super(new Geometry(), material);
 			this.geometry.addSubGeometry(_subGeometry);
 			

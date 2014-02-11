@@ -2,12 +2,13 @@
 // Paul Bourke's, triangulate.c (http://local.wasp.uwa.edu.au/~pbourke/papers/triangulate/triangulate.c)
 // Zachary Forest Johnson
 
-package away3d.extrusions
-{
+package away3d.extrusions {
+
 	import away3d.bounds.BoundingVolumeBase;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
 	import away3d.core.base.SubMesh;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.data.UV;
 	import away3d.entities.Mesh;
 	import away3d.materials.MaterialBase;
@@ -27,7 +28,7 @@ package away3d.extrusions
 		
 		private var _circle:Vector3D;
 		private var _vectors:Vector.<Vector3D>;
-		private var _subGeometry:SubGeometry;
+		private var _subGeometry:VectorSubGeometry;
 		private var _sortProp:String;
 		private var _loopProp:String;
 		
@@ -64,7 +65,7 @@ package away3d.extrusions
         public function DelaunayMesh(material:MaterialBase, vectors:Vector.<Vector3D>, plane:String = PLANE_XZ, centerMesh:Boolean = false, flip:Boolean = false, smoothSurface:Boolean = true)
         {
 		 	var geom:Geometry = new Geometry();
-			_subGeometry = new SubGeometry();
+			_subGeometry = new VectorSubGeometry();
 			geom.addSubGeometry(_subGeometry);
 			super(geom, material);
 			 
@@ -209,7 +210,7 @@ package away3d.extrusions
 		
 		private function addFace(v0:Vector3D, v1:Vector3D, v2:Vector3D, uv0:UV, uv1:UV, uv2:UV):void
 		{
-			var subGeom:SubGeometry = _subGeometry;
+			var subGeom:VectorSubGeometry = _subGeometry;
 			var uvs:Vector.<Number> = _uvs;
 			var vertices:Vector.<Number> = _vertices;
 			var indices:Vector.<uint> = _indices;
@@ -227,7 +228,7 @@ package away3d.extrusions
 					
 				this.geometry.addSubGeometry(subGeom);
 
-				subGeom = _subGeometry = new SubGeometry();
+				subGeom = _subGeometry = new VectorSubGeometry();
 				subGeom.autoDeriveVertexTangents = true;
 				 
 				uvs = _uvs = new Vector.<Number>();

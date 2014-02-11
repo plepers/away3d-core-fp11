@@ -19,6 +19,7 @@ package away3d.filters.tasks
 		private var _range : Number = 1000;
 		private var _stepSize : int;
 		private var _realStepSize : Number;
+		private var _focus : Number = 0.0;
 
 		/**
 		 * Creates a new Filter3DHDepthOfFFieldTask
@@ -29,7 +30,7 @@ package away3d.filters.tasks
 		{
 			super(true);
 			_maxBlur = maxBlur;
-			_data = Vector.<Number>([0, 0, 0, _focusDistance, 0, 0, 0, 0, _range, 0, 0, 0, 1.0, 1 / 255.0, 1 / 65025.0, 1 / 16581375.0]);
+			_data = Vector.<Number>([0, 0, 0, _focusDistance, 0.0, 0, 0, 0, _range, 0, 0, 0, 1.0, 1 / 255.0, 1 / 65025.0, 1 / 16581375.0]);
 			this.stepSize = stepSize;
 		}
 
@@ -45,6 +46,21 @@ package away3d.filters.tasks
 			calculateStepSize();
 			invalidateProgram3D();
 			updateBlurData();
+		}
+		
+		
+
+		public function get focus() : Number
+		{
+			return _focus;
+		}
+
+		public function set focus(value : Number) : void
+		{
+			if( _focus == value ) return;
+			if( _focus == 0.0 || focus == 0.0 ) invalidateProgram3D();
+			_focus = value;
+			_data[4] = value;
 		}
 
 		public function get range() : Number
@@ -90,15 +106,17 @@ package away3d.filters.tasks
 			var numSamples : uint = 1;
 
 			// sample depth, unpack & get blur amount (offset point + step size)
-			code = "tex ft0, v0, fs1 <2d, nearest>	\n" +
+			code = "tex ft0, v0, fs1 <2d,nearest>	\n" +
 
 					"dp4 ft1.z, ft0, fc3				\n" +
 					"sub ft1.z, ft1.z, fc1.z			\n" + // d = d - f
 					"div ft1.z, fc1.w, ft1.z			\n" + // screenZ = -n*f/(d-f)
 					"sub ft1.z, ft1.z, fc0.w			\n" + // screenZ - dist
-					"div ft1.z, ft1.z, fc2.x			\n" + // (screenZ - dist)/range
-
-					"abs ft1.z, ft1.z					\n" + // abs(screenZ - dist)/range
+					"abs ft1.z, ft1.z					\n" ; // abs(screenZ - dist)
+			if( _focus > 0.0) 
+				code += "sub ft1.z, ft1.z, fc1.x		\n" ; // + focus
+			
+			code += "div ft1.z, ft1.z, fc2.x			\n" + // abs(screenZ - dist)/range
 					"sat ft1.z, ft1.z					\n" + // sat(abs(screenZ - dist)/range)
 					"mul ft6.xy, ft1.z, fc0.xy			\n";
 
@@ -115,7 +133,11 @@ package away3d.filters.tasks
 				++numSamples;
 			}
 
-			code += "mul oc, ft1, fc0.z";
+			code += "mul oc, ft1, fc0.z \n";
+			
+//			code += "mul ft1.xyz, ft1.xyz, fc0.z \n";
+//			code += "mov ft1.w, fc1.x \n";
+//			code += "mov oc, ft1";
 
 			_data[2] = 1 / numSamples;
 

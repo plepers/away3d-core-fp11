@@ -1,5 +1,6 @@
 package away3d.loaders.parsers
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.materials.utils.DefaultMaterialManager;
 	import away3d.arcane;
 	import away3d.containers.ObjectContainer3D;
@@ -393,11 +394,11 @@ package away3d.loaders.parsers
 				vertLength+=9;
 			}
 			
-			var sub_geom:SubGeometry;
+			var sub_geom:VectorSubGeometry;
 			var geom:Geometry = mesh.geometry;
 			
 			for(i=0;i<subGeomsData.length;i+=3){
-				sub_geom = new SubGeometry();
+				sub_geom = new VectorSubGeometry();
 				geom.addSubGeometry(sub_geom);
 				sub_geom.updateVertexData(subGeomsData[i]);
 				sub_geom.updateIndexData(subGeomsData[i+1]);

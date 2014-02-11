@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
@@ -87,21 +89,26 @@ package away3d.materials.methods
 			_fadeRatio = value;
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = _baseMethod.getFragmentCode(vo, regCache, targetReg);
+			var code : ShaderChunk = _baseMethod.getFragmentCode(vo, regCache, targetReg);
 			var dataReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentSingleTemp();
 			vo.secondaryFragmentConstantsIndex = dataReg.index*4;
-
-			code +=	"abs " + temp + ", " + _projectionReg + ".w\n" +
-					"sub " + temp + ", " + temp + ", " + dataReg + ".x\n" +
-					"mul " + temp + ", " + temp + ", " + dataReg + ".y\n" +
-					"sat " + temp + ", " + temp + "\n" +
-					"sub " + temp + ", " + dataReg + ".w," + temp + "\n" +
-					"sub " + targetReg + ".w, " + dataReg + ".w," + targetReg + ".w\n" +
-					"mul " + targetReg + ".w, " + targetReg + ".w, " + temp + "\n" +
-					"sub " + targetReg + ".w, " + dataReg + ".w," + targetReg + ".w\n";
+			
+			var tmp : uint = temp.value();
+			var tgr : uint = targetReg.value();
+			var pjr : uint = _projectionReg.value();
+			var ddr : uint = dataReg.value();
+			
+			code.abs( tmp   , pjr ^w			);
+			code.sub( tmp   , tmp      , ddr ^x	);
+			code.mul( tmp   , tmp      , ddr ^y	);
+			code.sat( tmp   , tmp 				);
+			code.sub( tmp   , ddr ^w   , tmp 	);
+			code.sub( tgr ^w, ddr ^w   , tgr ^w	);
+			code.mul( tgr ^w, tgr ^w   , tmp 	);
+			code.sub( tgr ^w, ddr ^w   , tgr ^w	);
 
 			return code;
 		}
@@ -140,7 +147,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			return _baseMethod.getVertexCode(vo, regCache);
 		}

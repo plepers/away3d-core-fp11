@@ -3,6 +3,8 @@
  */
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
@@ -22,9 +24,9 @@ package away3d.materials.methods
 			vo.needsView = true;
 		}
 
-		arcane override function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		arcane override function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 
 			if (lightIndex > 0) {
@@ -32,44 +34,39 @@ package away3d.materials.methods
 				regCache.addFragmentTempUsages(t, 1);
 			}
 			else t = _totalLightColorReg;
-
+			
+			var tr : uint = t.value();
 			// (sin(l,t) * sin(v,t) - cos(l,t)*cos(v,t)) ^ k
 
-			code += "nrm " + t + ".xyz, " + _tangentVaryingReg + ".xyz\n" +
-					"dp3 " + t + ".w, " + t + ".xyz, " + lightDirReg + ".xyz\n" +
-					"dp3 " + t + ".z, " + t + ".xyz, " + _viewDirFragmentReg + ".xyz\n";
-
-			// (sin(t.w) * sin(t.z) - cos(t.w)*cos(t.z)) ^ k
-			code += "sin " + t + ".x, " + t + ".w\n" +
-					"sin " + t + ".y, " + t + ".z\n" +
-			// (t.x * t.y - cos(t.w)*cos(t.z)) ^ k
-					"mul " + t + ".x, " + t + ".x, " + t + ".y\n" +
-			// (t.x - cos(t.w)*cos(t.z)) ^ k
-					"cos " + t + ".z, " + t + ".z\n" +
-					"cos " + t + ".w, " + t + ".w\n" +
-			// (t.x - t.w*t.z) ^ k
-					"mul " + t + ".w, " + t + ".w, " + t + ".z\n" +
-			// (t.x - t.w) ^ k
-					"sub " + t + ".w, " + t + ".x, " + t + ".w\n";
+			code.nrm( tr ^ xyz, _tangentVaryingReg.value() ^ xyz );
+			code.dp3( tr ^ w  , tr ^ xyz, lightDirReg.value() ^xyz ); 
+			code.dp3( tr ^ z  , tr ^ xyz, _viewDirFragmentReg.value() ^xyz ); 
+			code.sin( tr ^ x  , tr ^ w); 
+			code.sin( tr ^ y  , tr ^ z); 
+			code.mul( tr ^ x  , tr ^ x, tr ^y); 
+			code.cos( tr ^ z  , tr ^ z); 
+			code.cos( tr ^ w  , tr ^ w); 
+			code.mul( tr ^ w  , tr ^ w, tr ^ z); 
+			code.sub( tr ^ w  , tr ^ x, tr ^ w); 
 
 
 			if (_useTexture) {
 				// apply gloss modulation from texture
-				code += "mul " + _specularTexData + ".w, " + _specularTexData + ".y, " + _specularDataRegister + ".w\n" +
-						"pow " + t + ".w, " + t + ".w, " + _specularTexData + ".w\n";
+				code.mul( _specularTexData.value() ^w, _specularTexData.value() ^y, _specularDataRegister.value() ^w );
+				code.pow( tr ^w, tr ^w, _specularTexData.value() ^w);
 			}
 			else
-				code += "pow " + t + ".w, " + t + ".w, " + _specularDataRegister + ".w\n";
+				code.pow( tr ^w, tr ^w, _specularDataRegister.value() ^w );
 
 			// attenuate
-			code += "mul " + t + ".w, " + t + ".w, " + lightDirReg + ".w\n";
+			code.mul( tr ^w,  tr ^w, lightDirReg.value() ^w );
 
-			if (_modulateMethod != null) code += _modulateMethod(vo, t, regCache);
+			if (_modulateMethod != null) _modulateMethod(code, vo, t, regCache);
 
-			code += "mul " + t + ".xyz, " + lightColReg + ".xyz, " + t + ".w\n";
+			code.mul( tr ^xyz, lightColReg.value() ^xyz, tr ^w );
 
 			if (lightIndex > 0) {
-				code += "add " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + t + ".xyz\n";
+				code.add( _totalLightColorReg.value() ^xyz, _totalLightColorReg.value() ^xyz, tr^xyz );
 				regCache.removeFragmentTempUsage(t);
 			}
 

@@ -34,15 +34,15 @@ package away3d.materials.utils
 		 */
 		public function reset() : void
 		{
-			_fragmentTempCache = new RegisterPool("ft", 8, false);
-			_vertexTempCache = new RegisterPool("vt", 8, false);
-			_varyingCache = new RegisterPool("v", 8);
-			_textureCache = new RegisterPool("fs", 8);
-			_vertexAttributesCache = new RegisterPool("va", 8);
-			_fragmentConstantsCache = new RegisterPool("fc", 28);
-			_vertexConstantsCache = new RegisterPool("vc", 128);
-			_fragmentOutputRegister = new ShaderRegisterElement("oc", -1);
-			_vertexOutputRegister = new ShaderRegisterElement("op", -1);
+			_fragmentTempCache = new RegisterPool(ShaderRegisterElement.T_TYPE, 8, false);
+			_vertexTempCache = new RegisterPool(ShaderRegisterElement.T_TYPE, 8, false);
+			_varyingCache = new RegisterPool(ShaderRegisterElement.V_TYPE, 8);
+			_textureCache = new RegisterPool(ShaderRegisterElement.S_TYPE, 8);
+			_vertexAttributesCache = new RegisterPool(ShaderRegisterElement.A_TYPE, 8);
+			_fragmentConstantsCache = new RegisterPool(ShaderRegisterElement.C_TYPE, 28);
+			_vertexConstantsCache = new RegisterPool(ShaderRegisterElement.C_TYPE, 128);
+			_fragmentOutputRegister = new ShaderRegisterElement(ShaderRegisterElement.O_TYPE, 0);
+			_vertexOutputRegister = new ShaderRegisterElement(ShaderRegisterElement.O_TYPE, 0);
 			_numUsedVertexConstants = 0;
 			_numUsedStreams = 0;
 			_numUsedTextures = 0;

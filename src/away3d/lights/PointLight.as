@@ -122,11 +122,11 @@ package away3d.lights
 
 			m.copyFrom(renderable.sceneTransform);
 			m.append(inverseSceneTransform);
-			m.copyColumnTo(3, _pos);
+			m.copyColumnTo(3, _POS);
 
 			var v1 : Vector3D = m.deltaTransformVector(bounds.min);
 			var v2 : Vector3D = m.deltaTransformVector(bounds.max);
-			var z : Number = _pos.z;
+			var z : Number = _POS.z;
 			var d1 : Number = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 			var d2 : Number = v2.x * v2.x + v2.y * v2.y + v2.z * v2.z;
 			var d : Number = Math.sqrt(d1 > d2 ? d1 : d2);

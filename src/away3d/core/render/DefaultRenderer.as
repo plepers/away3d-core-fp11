@@ -24,12 +24,12 @@ package away3d.core.render
 	 */
 	public class DefaultRenderer extends RendererBase
 	{
-		private static var RTT_PASSES : int = 1;
-		private static var SCREEN_PASSES : int = 2;
-		private static var ALL_PASSES : int = 3;
-		private var _activeMaterial : MaterialBase;
-		private var _distanceRenderer : DepthRenderer;
-		private var _depthRenderer : DepthRenderer;
+		protected static var RTT_PASSES : int = 1;
+		protected static var SCREEN_PASSES : int = 2;
+		protected static var ALL_PASSES : int = 3;
+		protected var _activeMaterial : MaterialBase;
+		protected var _distanceRenderer : DepthRenderer;
+		protected var _depthRenderer : DepthRenderer;
 
 		/**
 		 * Creates a new DefaultRenderer object.
@@ -62,7 +62,7 @@ package away3d.core.render
 			super.executeRender(entityCollector, target, scissorRect, surfaceSelector);
 		}
 
-		private function updateLights(entityCollector : EntityCollector) : void
+		protected function updateLights(entityCollector : EntityCollector) : void
 		{
 			var dirLights : Vector.<DirectionalLight> = entityCollector.directionalLights;
 			var pointLights : Vector.<PointLight> = entityCollector.pointLights;
@@ -89,18 +89,19 @@ package away3d.core.render
 		 */
 		override protected function draw(entityCollector : EntityCollector, target : TextureBase) : void
 		{
+			
+			_context.setDepthTest(true, Context3DCompareMode.LESS);
+			_context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
+			
+			var which : int = SCREEN_PASSES;
+			drawRenderables(entityCollector.opaqueRenderableHead, entityCollector, which);
+			drawRenderables(entityCollector.blendedRenderableHead, entityCollector, which);
+
 			if (entityCollector.skyBox) {
 				if (_activeMaterial) _activeMaterial.deactivate(_stage3DProxy);
 				_activeMaterial = null;
 				drawSkyBox(entityCollector);
 			}
-			
-			_context.setDepthTest(true, Context3DCompareMode.LESS);
-			_context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-			
-			var which : int = target? SCREEN_PASSES : ALL_PASSES;
-			drawRenderables(entityCollector.opaqueRenderableHead, entityCollector, which);
-			drawRenderables(entityCollector.blendedRenderableHead, entityCollector, which);
 
 			_context.setDepthTest(false, Context3DCompareMode.LESS);
 
@@ -113,7 +114,7 @@ package away3d.core.render
 		 * Draw the skybox if present.
 		 * @param entityCollector The EntityCollector containing all potentially visible information.
 		 */
-		private function drawSkyBox(entityCollector : EntityCollector) : void
+		protected function drawSkyBox(entityCollector : EntityCollector) : void
 		{
 			var skyBox : IRenderable = entityCollector.skyBox;
 			var material : MaterialBase = skyBox.material;
@@ -129,36 +130,38 @@ package away3d.core.render
 		 * @param renderables The renderables to draw.
 		 * @param entityCollector The EntityCollector containing all potentially visible information.
 		 */
-		private function drawRenderables(item : RenderableListItem, entityCollector : EntityCollector, which : int) : void
+		protected function drawRenderables(item : RenderableListItem, entityCollector : EntityCollector, which : int) : void
 		{
 			var numPasses : uint;
 			var j : uint;
 			var camera : Camera3D = entityCollector.camera;
 			var item2 : RenderableListItem;
-
+			var mat : MaterialBase;
+			
 			while (item) {
-				_activeMaterial = item.renderable.material;
-				_activeMaterial.updateMaterial(_context);
+				mat = item.renderable.material;
+				mat.updateMaterial(_context);
 
-				numPasses = _activeMaterial.numPasses;
+				numPasses = mat.numPasses;
 				j = 0;
 
 				do {
 					item2 = item;
 
-					var rttMask : int = _activeMaterial.passRendersToTexture(j)? 1 : 2;
+					var rttMask : int = mat.maskForPass(j);
 
 					if ((rttMask & which) != 0) {
-						_activeMaterial.activatePass(j, _stage3DProxy, camera, _textureRatioX, _textureRatioY);
+						mat.activatePass(j, _stage3DProxy, camera, _textureRatioX, _textureRatioY);
+						_activeMaterial = mat;
 						do {
-							_activeMaterial.renderPass(j, item2.renderable, _stage3DProxy, entityCollector);
+							mat.renderPass(j, item2.renderable, _stage3DProxy, entityCollector);
 							item2 = item2.next;
-						} while (item2 && item2.renderable.material == _activeMaterial);
-						_activeMaterial.deactivatePass(j, _stage3DProxy);
+						} while (item2 && item2.renderable.material == mat);
+						mat.deactivatePass(j, _stage3DProxy);
 					}
 					else do {
 						item2 = item2.next;
-					} while (item2 && item2.renderable.material == _activeMaterial);
+					} while (item2 && item2.renderable.material == mat);
 
 				} while (++j < numPasses);
 

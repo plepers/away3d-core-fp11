@@ -13,8 +13,8 @@ package away3d.materials
 	 */
 	public class SkyBoxMaterial extends MaterialBase
 	{
-		private var _cubeMap : CubeTextureBase;
-		private var _skyboxPass : SkyBoxPass;
+		protected var _cubeMap : CubeTextureBase;
+		protected var _skyboxPass : SkyBoxPass;
 
 		/**
 		 * Creates a new SkyBoxMaterial object.
@@ -23,9 +23,14 @@ package away3d.materials
 		public function SkyBoxMaterial(cubeMap : CubeTextureBase)
 		{
 			_cubeMap = cubeMap;
-			addPass(_skyboxPass = new SkyBoxPass());
+			addPass(_skyboxPass = createPass());
 			_skyboxPass.cubeTexture = _cubeMap;
 		}
+
+		protected function createPass() : SkyBoxPass {
+			return new SkyBoxPass();
+		}
+
 
 		/**
 		 * The CubeMap to use as the skybox.

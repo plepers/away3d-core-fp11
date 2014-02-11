@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.lights.DirectionalLight;
@@ -105,7 +108,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var depthMapRegister : ShaderRegisterElement = regCache.getFreeTextureReg();
 			var grainRegister : ShaderRegisterElement = regCache.getFreeTextureReg();
@@ -114,7 +117,13 @@ package away3d.materials.methods
 			var customDataReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var depthCol : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			var uvReg : ShaderRegisterElement;
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
+			
+			var uvr : uint = uvReg.value();
+			var dcl : uint = depthCol.value();
+			var tgr : uint = targetReg.value();
+			var dcr : uint = _depthMapCoordReg.value();
+			var dmr : uint = depthMapRegister.value();
 
 			vo.fragmentConstantsIndex = decReg.index*4;
 
@@ -122,90 +131,80 @@ package away3d.materials.methods
 
 			uvReg = regCache.getFreeFragmentVectorTemp();
 
-			code += // keep grain in uvReg.xy
-					"div " + uvReg + ", " + _depthMapCoordReg + ", " + customDataReg + ".y\n" +
-					"tex " + uvReg + ", " + uvReg + ", " + grainRegister + " <2d,nearest,repeat,mipnone>\n" +
-					"sub " + uvReg + ".xy, " + uvReg + ".xy, " + customDataReg + ".zz\n" + 	// uv-.5
-					"add " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".xy\n" +      // 2*(uv-.5)
-					"mul " + uvReg + ".xy, " + uvReg + ".xy, " + customDataReg + ".y\n" +
-					"add " + uvReg+".z, " + _depthMapCoordReg+".z, " + dataReg+".x\n" +     // offset by epsilon
-
-					"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"slt " + targetReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-					"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-					"neg " + uvReg+".xy, " + uvReg+".xy\n" +
-					"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-					"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n" +
-					"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-					"mov " + uvReg+".xy, " + uvReg+".yx\n" +
-					"neg " + uvReg+".x, " + uvReg+".x\n" +
-
-					"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-					"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n" +
-					"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-					"neg " + uvReg+".xy, " + uvReg+".xy\n" +
-					"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-					"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n";
+			
+			code.div( uvr			, dcr 		,  customDataReg.value() ^y );
+			code.tex( uvr			, uvr 		,  grainRegister.value() | Tex.NEAREST| Tex.REPEAT| Tex.MIPNONE);
+			code.sub( uvr	^xy		, uvr ^xy	,  customDataReg.value() ^z ); 	// uv-.5
+			code.add( uvr	^xy		, uvr ^xy	,  uvr ^xy );      // 2*(uv-.5)
+			code.mul( uvr	^xy		, uvr ^xy	,  customDataReg.value()^y);
+			code.add( uvr	^z		, dcr ^z	,  dataReg.value()^x);     // offset by epsilon
+			code.add( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.tex( dcl			, uvr 		,  dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+			code.dp4( dcl	^z		, dcl 		,  decReg.value() );
+			code.slt( tgr	^w		, uvr ^z	,  dcl^z);    // 0 if in shadow
+			code.sub( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.neg( uvr	^xy		, uvr ^xy	);
+			code.add( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.tex( dcl			, uvr 		,  dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+			code.dp4( dcl	^z		, dcl 		,  decReg.value() );
+			code.slt( uvr	^w		, uvr ^z	,  dcl^z);    // 0 if in shadow
+			code.add( tgr	^w		, tgr ^w	,  uvr^w);
+			code.sub( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.mov( uvr	^xy		, uvr ^yx	);
+			code.neg( uvr	^x		, uvr ^x	);
+			code.add( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.tex( dcl			, uvr 		,  dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+			code.dp4( dcl	^z		, dcl 		,  decReg.value()  );
+			code.slt( uvr	^w		, uvr ^z	,  dcl^z);    // 0 if in shadow
+			code.add( tgr	^w		, tgr ^w	,  uvr^w);
+			code.sub( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.neg( uvr	^xy		, uvr ^xy	);
+			code.add( uvr	^xy		, uvr ^xy	,  dcr^xy);
+			code.tex( dcl			, uvr 		,  dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+			code.dp4( dcl	^z		, dcl 		,  decReg.value() );
+			code.slt( uvr	^w		, uvr ^z	,  dcl^z);    // 0 if in shadow
+			code.add( tgr	^w		, tgr ^w	,  uvr^w);
 
 			if (_highRes) {
 					// reseed
-				code +=	"div " + uvReg + ".xy, " + _depthMapCoordReg + ".xy, " + customDataReg + ".y\n" +
-						"tex " + uvReg + ", " + uvReg + ", " + grainRegister + " <2d,nearest,repeat,mipnone>\n" +
-						"sub " + uvReg + ".xy, " + uvReg + ".xy, " + customDataReg + ".zz\n" +
-						"add " + uvReg + ".xy, " + uvReg + ".xy, " + uvReg + ".xy\n" +
-						"mul " + uvReg + ".xy, " + uvReg + ".xy, " + customDataReg + ".y\n" +
-						"add " + uvReg+".z, " + _depthMapCoordReg+".z, " + dataReg+".x\n" +     // offset by epsilon
-
-						"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-						"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-						"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-						"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-						"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n" +
-						"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-						"neg " + uvReg+".xy, " + uvReg+".xy\n" +
-						"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-						"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-						"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-						"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-						"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n" +
-						"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-						"mov " + uvReg+".xy, " + uvReg+".yx\n" +
-						"neg " + uvReg+".x, " + uvReg+".x\n" +
-
-						"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-						"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-						"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-						"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-						"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n" +
-						"sub " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-
-						"neg " + uvReg+".xy, " + uvReg+".xy\n" +
-						"add " + uvReg+".xy, " + uvReg+".xy, " + _depthMapCoordReg+".xy\n" +
-						"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d,nearest,clamp,mipnone>\n" +
-						"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-						"slt " + uvReg+".w, " + uvReg+".z, " + depthCol+".z\n" +    // 0 if in shadow
-						"add " + targetReg+".w, " + targetReg+".w, " + uvReg+".w\n";
+				code.div( uvr ^xy	, dcr ^xy	, customDataReg.value() ^y);
+				code.tex( uvr 		, uvr 		, grainRegister.value() | Tex.NEAREST| Tex.REPEAT| Tex.MIPNONE);
+				code.sub( uvr ^xy	, uvr ^xy	, customDataReg.value() ^z);
+				code.add( uvr ^xy	, uvr ^xy	, uvr ^xy);
+				code.mul( uvr ^xy	, uvr ^xy	, customDataReg.value() ^y);
+				code.add( uvr ^z	, dcr ^z	, dataReg.value()^x);     // offset by epsilon
+				code.add( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.tex( dcl 		, uvr 		, dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+				code.dp4( dcl ^z	, dcl 		, decReg.value() );
+				code.slt( uvr ^w	, uvr ^z	, dcl^z);    // 0 if in shadow
+				code.add( tgr ^w	, tgr ^w	, uvr^w);
+				code.sub( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.neg( uvr ^xy	, uvr ^xy);
+				code.add( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.tex( dcl 		, uvr 		, dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+				code.dp4( dcl ^z	, dcl 		, decReg.value() );
+				code.slt( uvr ^w	, uvr ^z	, dcl^z);    // 0 if in shadow
+				code.add( tgr ^w	, tgr ^w	, uvr^w);
+				code.sub( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.mov( uvr ^xy	, uvr ^yx);
+				code.neg( uvr ^x	, uvr ^x);
+				code.add( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.tex( dcl 		, uvr 		, dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+				code.dp4( dcl ^z	, dcl 		, decReg.value() );
+				code.slt( uvr ^w	, uvr ^z	, dcl^z);    // 0 if in shadow
+				code.add( tgr ^w	, tgr ^w	, uvr^w);
+				code.sub( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.neg( uvr ^xy	, uvr ^xy);
+				code.add( uvr ^xy	, uvr ^xy	, dcr^xy);
+				code.tex( dcl 		, uvr 		, dmr | Tex.NEAREST| Tex.CLAMP | Tex.MIPNONE );
+				code.dp4( dcl ^z	, dcl 		, decReg.value() );
+				code.slt( uvr ^w	, uvr ^z	, dcl^z);    // 0 if in shadow
+				code.add( tgr ^w	, tgr ^w	, uvr^w);
 			}
 
 			regCache.removeFragmentTempUsage(depthCol);
 
-			code += "mul " + targetReg+".w, " + targetReg+".w, " + customDataReg+".x\n";  // average
+			code.mul( tgr^w, tgr^w, customDataReg.value()^x);  // average
 
 			vo.texturesIndex = depthMapRegister.index;
 

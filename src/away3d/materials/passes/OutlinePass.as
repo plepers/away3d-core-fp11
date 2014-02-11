@@ -1,5 +1,9 @@
 package away3d.materials.passes
 {
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
+	import com.instagal.regs.*;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.Geometry;
@@ -52,8 +56,8 @@ package away3d.materials.passes
 			if (dedicatedMeshes)
 				_outlineMeshes = new Dictionary();
 				
-			_animatableAttributes = ["va0", "va1"];
-			_animationTargetRegisters = ["vt0", "vt1"];
+			_animatableAttributes = new <uint>[a0, a1];
+			_animationTargetRegisters = new <uint>[t0, t1];
 			
 		}
 
@@ -126,25 +130,28 @@ package away3d.materials.passes
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
+			var sh : Shader = new Shader( Context3DProgramType.VERTEX );
+			sh.append( code );
 			// offset
-			code += "mul vt7, vt1, vc5.x\n" +
-					"add vt7, vt7, vt0\n" +
-					"mov vt7.w, vt0.w\n" +
-			// project and scale to viewport
-					"m44 vt7, vt7, vc0		\n" +
-					"mul op, vt7, vc4\n";
+			sh.mul( t7, t1, c5^x);
+			sh.add( t7, t7, t0  );
+			sh.mov( t7^w, t0^w  );
+			sh.m44( t7, t7, c0	);
+			sh.mul( op, t7, c4  );
 
-			return code;
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			return 	"mov oc, fc0\n";
+			var sh : Shader = new Shader( Context3DProgramType.FRAGMENT );
+			sh.mov( oc, c0 );
+			return sh;
 		}
 
 		/**
@@ -176,7 +183,7 @@ package away3d.materials.passes
 		{
 			var mesh : Mesh, dedicatedRenderable : IRenderable;
 			if (_dedicatedMeshes) {
-				mesh = _outlineMeshes[renderable] ||= createDedicatedMesh(SubMesh(renderable).subGeometry);
+				mesh = _outlineMeshes[renderable] ||= createDedicatedMesh(SubMesh(renderable).subGeometry as VectorSubGeometry);
 				dedicatedRenderable = mesh.subMeshes[0];
 
 				var context : Context3D = stage3DProxy._context3D;
@@ -193,10 +200,10 @@ package away3d.materials.passes
 		}
 
 		// creates a new mesh in which all vertices are unique
-		private function createDedicatedMesh(source : SubGeometry) : Mesh
+		private function createDedicatedMesh(source : VectorSubGeometry) : Mesh
 		{
 			var mesh : Mesh = new Mesh(new Geometry(), null);
-			var dest : SubGeometry = new SubGeometry();
+			var dest : VectorSubGeometry = new VectorSubGeometry();
 			var indexLookUp : Array = [];
 			var srcIndices : Vector.<uint> = source.indexData;
 			var srcVertices : Vector.<Number> = source.vertexData;

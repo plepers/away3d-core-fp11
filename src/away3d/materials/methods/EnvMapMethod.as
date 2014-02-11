@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -15,7 +18,7 @@ package away3d.materials.methods
 		private var _cubeTexture : CubeTextureBase;
 		private var _alpha : Number;
 
-		public function EnvMapMethod(envMap : CubeTextureBase, alpha : Number = 1)
+		public function EnvMapMethod(envMap : CubeTextureBase = null, alpha : Number = 1)
 		{
 			super();
 			_cubeTexture = envMap;
@@ -64,26 +67,26 @@ package away3d.materials.methods
 			stage3DProxy.setTextureAt(vo.texturesIndex, _cubeTexture.getTextureForStage3D(stage3DProxy));
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var dataRegister : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var cubeMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			vo.texturesIndex = cubeMapReg.index;
 			vo.fragmentConstantsIndex = dataRegister.index*4;
-
+			var tp : uint = temp.value();
+			
 			// r = I - 2(I.N)*N
-			code += "dp3 " + temp + ".w, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz		\n" +
-					"add " + temp + ".w, " + temp + ".w, " + temp + ".w											\n" +
-					"mul " + temp + ".xyz, " + _normalFragmentReg + ".xyz, " + temp + ".w						\n" +
-					"sub " + temp + ".xyz, " + _viewDirFragmentReg + ".xyz, " + temp + ".xyz					\n" +
-			// 	(I = -V, so invert vector)
-					"neg " + temp + ".xyz, " + temp + ".xyz														\n" +
-					"tex " + temp + ", " + temp + ", " + cubeMapReg + " <cube, " + (vo.useSmoothTextures? "linear" : "nearest") + ",miplinear,clamp>\n" +
-					"sub " + temp + ", " + temp + ", " + targetReg + "											\n" +
-					"mul " + temp + ", " + temp + ", " + dataRegister + ".x										\n" +
-					"add " + targetReg + ".xyz, " + targetReg+".xyz, " + temp + ".xyz							\n";
+			code.dp3( tp ^w			, _viewDirFragmentReg.value()^xyz, _normalFragmentReg.value()^xyz );
+			code.add( tp ^w			, tp ^w, tp ^w							);
+			code.mul( tp ^xyz		, _normalFragmentReg.value() ^xyz,  tp ^w		);
+			code.sub( tp ^xyz		, _viewDirFragmentReg.value() ^xyz, tp ^xyz		);
+			code.neg( tp ^xyz		, tp ^xyz								);
+			code.tex( tp 			, tp , ( cubeMapReg.value() |Tex.CUBE| (vo.useSmoothTextures? Tex.LINEAR:Tex.NEAREST) |Tex.MIPLINEAR|Tex.CLAMP ) );
+			code.sub( tp 			, tp , targetReg.value()					);
+			code.mul( tp 			, tp , dataRegister.value() ^x				);
+			code.add( targetReg.value() ^xyz, targetReg.value()^xyz, tp ^xyz			);
 
 			return code;
 		}

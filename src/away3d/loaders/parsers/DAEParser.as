@@ -1,6 +1,5 @@
-package away3d.loaders.parsers
-{
-	import away3d.materials.utils.DefaultMaterialManager;
+package away3d.loaders.parsers {
+
 	import away3d.animators.SkeletonAnimationSet;
 	import away3d.animators.SkeletonAnimationState;
 	import away3d.animators.data.JointPose;
@@ -12,7 +11,7 @@ package away3d.loaders.parsers
 	import away3d.containers.ObjectContainer3D;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SkinnedSubGeometry;
-	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.entities.Mesh;
 	import away3d.library.assets.BitmapDataAsset;
 	import away3d.loaders.misc.ResourceDependency;
@@ -22,11 +21,11 @@ package away3d.loaders.parsers
 	import away3d.materials.methods.BasicAmbientMethod;
 	import away3d.materials.methods.BasicDiffuseMethod;
 	import away3d.materials.methods.BasicSpecularMethod;
+	import away3d.materials.utils.DefaultMaterialManager;
 	import away3d.textures.BitmapTexture;
 	import away3d.textures.Texture2DBase;
-	import away3d.tools.utils.TextureUtils;
+
 	import flash.display.BitmapData;
-	import flash.geom.Matrix;
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	import flash.net.URLRequest;
@@ -247,7 +246,7 @@ package away3d.loaders.parsers
 		{
 			var vec : Vector3D = new Vector3D();
 			var i : uint;
-			for each (var sub : SubGeometry in geometry.subGeometries) {
+			for each (var sub : VectorSubGeometry in geometry.subGeometries) {
 				var vertexData : Vector.<Number> = sub.vertexData;
 				for (i = 0; i < vertexData.length; i += 3) {
 					vec.x = vertexData[i+0];
@@ -264,7 +263,7 @@ package away3d.loaders.parsers
 		
 		private function applySkinController(geometry : Geometry, mesh : DAEMesh, skin : DAESkin, skeleton : Skeleton) : void
 		{
-			var sub : SubGeometry;
+			var sub : VectorSubGeometry;
 			var skinned_sub_geom : SkinnedSubGeometry;
 			var primitive : DAEPrimitive;
 			var jointIndices:Vector.<Number>;
@@ -272,7 +271,7 @@ package away3d.loaders.parsers
 			var i : uint, j : uint, k : uint, l : int;
 			
 			for (i = 0; i < geometry.subGeometries.length; i++) {
-				sub = geometry.subGeometries[i];
+				sub = geometry.subGeometries[i] as VectorSubGeometry;
 				primitive = mesh.primitives[i];
 				jointIndices = new Vector.<Number>(skin.maxBones * primitive.vertices.length, true);
 				jointWeights = new Vector.<Number>(skin.maxBones * primitive.vertices.length, true);
@@ -380,7 +379,7 @@ package away3d.loaders.parsers
 			var targets : Vector.<Geometry> = new Vector.<Geometry>();
 			var base : Geometry = getGeometryByName(morph.source);
 			var vertexData : Vector.<Number>;
-			var sub : SubGeometry;
+			var sub : VectorSubGeometry;
 			var startWeight : Number = 1.0;
 			var i : uint, j : uint, k : uint;
 			var geometry : Geometry;
@@ -394,12 +393,12 @@ package away3d.loaders.parsers
 			}
 			
 			for (i = 0; i < base.subGeometries.length; i++) {
-				sub = base.subGeometries[i];
+				sub = base.subGeometries[i] as VectorSubGeometry;
 				vertexData = new Vector.<Number>(sub.vertexData.length);
 				for (j = 0; j < vertexData.length; j++) {
 					vertexData[j] = morph.method == "NORMALIZED" ? startWeight * sub.vertexData[j] : sub.vertexData[j];
 					for (k = 0; k < morph.targets.length; k++) {
-						vertexData[j] += morph.weights[k] * targets[k].subGeometries[i].vertexData[j];
+						vertexData[j] += morph.weights[k] * ( targets[k].subGeometries[i] as VectorSubGeometry ).vertexData[j];
 					}
 				}
 				sub.updateVertexData(vertexData);
@@ -484,7 +483,7 @@ package away3d.loaders.parsers
 					state.looping = true;
 					
 					weights = SkinnedSubGeometry(mesh.geometry.subGeometries[0]).jointIndexData.length;
-					jpv = weights / (mesh.geometry.subGeometries[0].vertexData.length/3);
+					jpv = weights / ( (mesh.geometry.subGeometries[0] as VectorSubGeometry).vertexData.length/3);
 					//anim = new SkeletonAnimation(skeleton, jpv);
 					
 					//var state:SkeletonAnimationState = SkeletonAnimationState(mesh.animationState);
@@ -758,16 +757,16 @@ package away3d.loaders.parsers
 		{
 			var geometry : Geometry = new Geometry();
 			for (var i:uint = 0; i < mesh.primitives.length; i++) {
-				var sub : SubGeometry = translatePrimitive(mesh, mesh.primitives[i]);
+				var sub : VectorSubGeometry = translatePrimitive(mesh, mesh.primitives[i]);
 				if (sub) geometry.addSubGeometry(sub);
 			}
 			
 			return geometry;
 		}
 		 
-		private function translatePrimitive(mesh : DAEMesh, primitive : DAEPrimitive,  reverseTriangles:Boolean = true, autoDeriveVertexNormals : Boolean = true, autoDeriveVertexTangents : Boolean = true) : SubGeometry
+		private function translatePrimitive(mesh : DAEMesh, primitive : DAEPrimitive,  reverseTriangles:Boolean = true, autoDeriveVertexNormals : Boolean = true, autoDeriveVertexTangents : Boolean = true) : VectorSubGeometry
 		{
-			var sub : SubGeometry = new SubGeometry();
+			var sub : VectorSubGeometry = new VectorSubGeometry();
 			var indexData:Vector.<uint> = new Vector.<uint>();
 			var vertexData:Vector.<Number> = new Vector.<Number>();
 			var normalData:Vector.<Number> = new Vector.<Number>();
@@ -836,10 +835,12 @@ package away3d.loaders.parsers
 		
 	}
 }
- 
+
 import away3d.loaders.parsers.DAEParser;
+
 import flash.geom.Matrix3D;
 import flash.geom.Vector3D;
+ 
 
 class DAEAnimationInfo
 {

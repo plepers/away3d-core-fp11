@@ -39,12 +39,12 @@ package away3d.animators
 		private var _autoUpdate : Boolean = true;
 		private var _startEvent : AnimatorEvent;
 		private var _stopEvent : AnimatorEvent;
-		private var _time : int;
+		public var _time : int;
 		private var _playbackSpeed : Number = 1;
 		
 		protected var _owners : Vector.<Mesh> = new Vector.<Mesh>();
 		protected var _activeState:IAnimationState;
-		protected var _absoluteTime : Number = 0;
+		public var _absoluteTime : Number = 0;
 		
 		/**
 		 * Returns the animation data set in use by the animator.

@@ -1,5 +1,6 @@
 package away3d.animators
 {
+	import com.instagal.regs.t0;
 	import away3d.errors.AnimationSetError;
 	import flash.utils.Dictionary;
 	import away3d.library.assets.AssetType;
@@ -27,19 +28,21 @@ package away3d.animators
 		 * @param excludeAnother An additional register that's not free.
 		 * @return A temporary register that can be used.
 		 */
-		protected function findTempReg(exclude : Array, excludeAnother : String = null) : String
+		protected function findTempReg(exclude : Vector.<uint>, excludeAnother : uint = 0 ) : uint
 		{
 			var i : uint;
-			var reg : String;
-
+			var reg : uint;
+			
 			while (true) {
-				reg = "vt" + i;
-				if (exclude.indexOf(reg) == -1 && excludeAnother != reg) return reg;
+				reg = t0 + i;
+				
+				if ((exclude.indexOf(reg) == -1) && (excludeAnother != reg) ) 
+					return reg;
 				++i;
 			}
 
 			// can't be reached
-			return null;
+			return 0;
 		}
 		
 		/**

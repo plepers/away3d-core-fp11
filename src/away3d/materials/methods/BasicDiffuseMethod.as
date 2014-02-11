@@ -1,13 +1,14 @@
-package away3d.materials.methods
-{
+package away3d.materials.methods {
+
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
 	import away3d.textures.Texture2DBase;
-
+	import com.instagal.ShaderChunk;
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
 	import flash.display3D.Context3D;
-	import flash.display3D.Context3DProgramType;
 
 	use namespace arcane;
 
@@ -19,12 +20,12 @@ package away3d.materials.methods
 		arcane var _useDiffuseTexture : Boolean;
 		
 		protected var _useTexture : Boolean;
-		internal var _totalLightColorReg : ShaderRegisterElement;
+		arcane var _totalLightColorReg : ShaderRegisterElement;
 
 		// TODO: are these registers at all necessary to be members?
 		protected var _diffuseInputRegister : ShaderRegisterElement;
 
-		private var _texture : Texture2DBase;
+		protected var _texture : Texture2DBase;
 		private var _diffuseColor : uint = 0xffffff;
 		private var _diffuseR : Number = 1, _diffuseG : Number = 1, _diffuseB : Number = 1, _diffuseA : Number = 1;
 		protected var _shadowRegister : ShaderRegisterElement;
@@ -148,24 +149,23 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
 
 			if (vo.numLights > 0) {
 				_totalLightColorReg = regCache.getFreeFragmentVectorTemp();
 				regCache.addFragmentTempUsages(_totalLightColorReg, 1);
 			}
 
-			return code;
+			return null;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 
 			// write in temporary if not first light, so we can add to total diffuse colour
@@ -176,19 +176,22 @@ package away3d.materials.methods
 			else {
 				t = _totalLightColorReg;
 			}
+			var tr : uint = t.value();
+//			code += "dp3 " + t + ".x, " + lightDirReg + ".xyz, " + _normalFragmentReg + ".xyz\n" +
+//					"sat " + t + ".w, " + t + ".x\n" +
+//				// attenuation
+//					"mul " + t + ".w, " + t + ".w, " + lightDirReg + ".w\n";
+			code.dp3( tr ^ x, lightDirReg.value() ^ xyz, _normalFragmentReg.value() ^ xyz );
+			code.sat( tr ^ w, tr ^ x );
+			code.mul( tr ^ w, tr ^ w,  lightDirReg.value()^w );
 
-			code += "dp3 " + t + ".x, " + lightDirReg + ".xyz, " + _normalFragmentReg + ".xyz\n" +
-					"sat " + t + ".w, " + t + ".x\n" +
-				// attenuation
-					"mul " + t + ".w, " + t + ".w, " + lightDirReg + ".w\n";
+			if (_modulateMethod != null) _modulateMethod(code, vo, t, regCache);
 
-			if (_modulateMethod != null) code += _modulateMethod(vo, t, regCache);
-
-			code += "mul " + t + ", " + t + ".w, " + lightColReg + "\n";
+			code.mul( tr , tr ^ w, lightColReg.value() );
 
 
 			if (lightIndex > 0) {
-				code += "add " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + t + ".xyz\n";
+				code.add( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, tr ^ xyz );
 				regCache.removeFragmentTempUsage(t);
 			}
 
@@ -198,9 +201,9 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : String, regCache : ShaderRegisterCache) : String
+		arcane override function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : uint, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 
 			// write in temporary if not first light, so we can add to total diffuse colour
@@ -211,16 +214,17 @@ package away3d.materials.methods
 			else {
 				t = _totalLightColorReg;
 			}
+			var tr : uint = t.value();
 
-			code += "tex " + t + ", " + _normalFragmentReg + ", " + cubeMapReg + " <cube,linear,miplinear>\n" +
-					"mul " + t + ", " + t + ", " + weightRegister + "\n";
+			code.tex( tr, _normalFragmentReg.value(), cubeMapReg.value() | Tex.CUBE | Tex.LINEAR | Tex.MIPLINEAR );
+			code.mul( tr, tr, weightRegister );
 
 //			if (_modulateMethod != null) code += _modulateMethod(t, regCache);
 
 //			code += "mul " + t + ".xyz, " + t + ".xyz, " + t + ".w\n";
 
 			if (lightIndex > 0) {
-				code += "add " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + t + ".xyz\n";
+				code.add( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, tr ^ xyz );
 				regCache.removeFragmentTempUsage(t);
 			}
 
@@ -230,9 +234,9 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 			var cutOffReg : ShaderRegisterElement;
 
@@ -242,45 +246,46 @@ package away3d.materials.methods
 				regCache.addFragmentTempUsages(t, 1);
 				
 				if (_shadowRegister)
-					code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
+					code.mul(  _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, _shadowRegister.value() ^ w );
 			} else {
 				t = targetReg;
 			}
-
+			var tr : uint = t.value();
+			var treg : uint = targetReg.value();
 
 			if (_useTexture) {
 				_diffuseInputRegister = regCache.getFreeTextureReg();
 				vo.texturesIndex = _diffuseInputRegister.index;
-				code += getTexSampleCode(vo, t, _diffuseInputRegister);
+				getTexSampleCode(code, vo, t, _diffuseInputRegister, null, 0, _texture.samplerType);
 				if (_alphaThreshold > 0) {
 					cutOffReg = regCache.getFreeFragmentConstant();
 					vo.fragmentConstantsIndex = cutOffReg.index*4;
-					code += "sub " + t + ".w, " + t + ".w, " + cutOffReg + ".x\n" +
-							"kil " + t + ".w\n" +
-							"add " + t + ".w, " + t + ".w, " + cutOffReg + ".x\n";
+					code.sub( tr ^ w, tr^w, cutOffReg.value() ^ x );
+					code.kil( tr ^ w );
+					code.add( tr ^ w, tr^w, cutOffReg.value() ^ x );
 				}
 			}
 			else {
 				_diffuseInputRegister = regCache.getFreeFragmentConstant();
 				vo.fragmentConstantsIndex = _diffuseInputRegister.index*4;
-				code += "mov " + t + ", " + _diffuseInputRegister + "\n";
+				code.mov( tr, _diffuseInputRegister.value() );
 			}
 
 			if (vo.numLights == 0)
 				return code;
 			
-			
+			var tlr : uint = _totalLightColorReg.value();
 			if (_useDiffuseTexture) {
-				code += "sat " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz\n" +
-					"mul " + t + ".xyz, " + t + ".xyz, " + _totalLightColorReg + ".xyz\n" +
-					"mul " + _totalLightColorReg + ".xyz, " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz\n" +
-					"sub " + targetReg + ".xyz, " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz\n" +
-					"add " + targetReg + ".xyz, " + t + ".xyz, " + targetReg + ".xyz\n";
+				code.sat( tlr ^ xyz, tlr ^xyz );
+				code.mul( tr ^xyz, tr ^ xyz, tlr ^ xyz );
+				code.mul( tlr  ^ xyz, treg  ^ xyz, tlr ^ xyz);
+				code.sub( treg  ^ xyz, treg ^ xyz, tlr ^ xyz);
+				code.add( treg ^ xyz, tr  ^ xyz,  treg ^ xyz);
 			} else {
-				code += "add " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz, " + targetReg + ".xyz\n" +
-					"sat " + targetReg + ".xyz, " + targetReg + ".xyz\n" +
-					"mul " + targetReg + ".xyz, " + t + ".xyz, " + targetReg + ".xyz\n" +
-					"mov " + targetReg + ".w, " + t + ".w\n"; 
+				code.add( treg ^ xyz, tlr ^xyz, treg ^xyz);
+				code.sat( treg ^ xyz, treg^xyz);
+				code.mul( treg ^ xyz, tr  ^xyz, treg ^ xyz); 
+				code.mov( treg ^ w  , tr  ^w ); 
 			}
 
 			regCache.removeFragmentTempUsage(_totalLightColorReg);

@@ -513,7 +513,7 @@ package away3d.animators
 	}
 }
 
-import away3d.core.base.SubGeometry;
+import away3d.core.base.VectorSubGeometry;
 
 class SubGeomAnimationState
 {
@@ -522,7 +522,7 @@ class SubGeomAnimationState
 	public var animatedTangentData : Vector.<Number>;
 	public var dirty : Boolean = true;
 
-	public function SubGeomAnimationState(subGeom : SubGeometry)
+	public function SubGeomAnimationState(subGeom : VectorSubGeometry)
 	{
 		animatedVertexData = subGeom.vertexData.concat();
 		animatedNormalData = subGeom.vertexNormalData.concat();

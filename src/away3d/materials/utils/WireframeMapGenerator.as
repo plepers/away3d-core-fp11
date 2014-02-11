@@ -1,7 +1,7 @@
-package away3d.materials.utils
-{
+package away3d.materials.utils {
+
 	import away3d.arcane;
-	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.entities.Mesh;
 
 	import flash.display.BitmapData;
@@ -28,7 +28,7 @@ package away3d.materials.utils
 			bitmapData = bitmapData.clone();
 
 			for (var i : uint = 0; i < mesh.subMeshes.length; ++i)
-				drawLines(lineColor, lineThickness, bitmapData, mesh.subMeshes[i].subGeometry);
+				drawLines(lineColor, lineThickness, bitmapData, mesh.subMeshes[i].subGeometry as VectorSubGeometry);
 
 			return bitmapData;
 		}
@@ -54,7 +54,7 @@ package away3d.materials.utils
 			bitmapData = new BitmapData(width, height, fillAlpha == 1? false : true, (fillAlpha  << 24) | (fillColor & 0xffffff));
 
 			for (var i : uint = 0; i < mesh.subMeshes.length; ++i)
-				drawLines(lineColor, lineThickness, bitmapData, mesh.subMeshes[i].subGeometry);
+				drawLines(lineColor, lineThickness, bitmapData, mesh.subMeshes[i].subGeometry as VectorSubGeometry);
 
 			return bitmapData;
 		}
@@ -62,7 +62,7 @@ package away3d.materials.utils
 		/**
 		 * Draws the actual lines.
 		 */
-		private static function drawLines(lineColor : uint, lineThickness : Number, bitmapData : BitmapData, subGeom : SubGeometry) : void
+		private static function drawLines(lineColor : uint, lineThickness : Number, bitmapData : BitmapData, subGeom : VectorSubGeometry) : void
 		{
 			var sprite : Sprite = new Sprite();
 			var g : Graphics = sprite.graphics;

@@ -1,9 +1,11 @@
-package away3d.materials.methods
-{
+package away3d.materials.methods {
+
 	import away3d.arcane;
 	import away3d.errors.AbstractMethodError;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
+
+	import com.instagal.ShaderChunk;
 
 	use namespace arcane;
 
@@ -23,10 +25,10 @@ package away3d.materials.methods
 		 * @param regCache The register cache used during the compilation.
 		 * @private
 		 */
-		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			throw new AbstractMethodError();
-			return "";
+			return null;
 		}
 	}
 }

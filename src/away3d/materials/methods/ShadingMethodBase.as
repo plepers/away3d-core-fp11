@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
@@ -22,11 +24,18 @@ package away3d.materials.methods
 		protected var _viewDirVaryingReg : ShaderRegisterElement;
 		protected var _viewDirFragmentReg : ShaderRegisterElement;
 		protected var _normalFragmentReg : ShaderRegisterElement;
+		protected var _normalVaryingReg : ShaderRegisterElement;
 		protected var _uvFragmentReg : ShaderRegisterElement;
 		protected var _secondaryUVFragmentReg : ShaderRegisterElement;
+		protected var _vcFragmentReg : ShaderRegisterElement;
 		protected var _tangentVaryingReg : ShaderRegisterElement;
+		protected var _bitanVaryingReg : ShaderRegisterElement;
 		protected var _globalPosReg : ShaderRegisterElement;
 		protected var _projectionReg : ShaderRegisterElement;
+		protected var _reflectVaryingReg : ShaderRegisterElement;
+		protected var _refractVaryingReg : ShaderRegisterElement;
+		protected var _commonFragReg : ShaderRegisterElement;
+		protected var _extendedReg : ShaderRegisterElement;
 
 		protected var _passes : Vector.<MaterialPassBase>;
 
@@ -92,6 +101,26 @@ package away3d.materials.methods
 			_globalPosReg = null;
 			_projectionReg = null;
 		}
+		
+		arcane function get tangentVaryingReg() : ShaderRegisterElement
+		{
+			return _tangentVaryingReg;
+		}
+
+		arcane function set tangentVaryingReg(value : ShaderRegisterElement) : void
+		{
+			_tangentVaryingReg = value;
+		}
+		
+		
+		arcane function get bitanVaryingReg() : ShaderRegisterElement {
+			return _bitanVaryingReg;
+		}
+
+		arcane function set bitanVaryingReg(bitanVaryingReg : ShaderRegisterElement) : void {
+			_bitanVaryingReg = bitanVaryingReg;
+		}
+		
 
 		/**
 		 * The fragment register in which the uv coordinates are stored.
@@ -105,6 +134,16 @@ package away3d.materials.methods
 		arcane function set globalPosReg(value : ShaderRegisterElement) : void
 		{
 			_globalPosReg = value;
+		}
+
+		arcane function get commonFragReg() : ShaderRegisterElement
+		{
+			return _commonFragReg;
+		}
+
+		arcane function set commonFragReg(value : ShaderRegisterElement) : void
+		{
+			_commonFragReg = value;
 		}
 
 		arcane function get projectionReg() : ShaderRegisterElement
@@ -145,6 +184,17 @@ package away3d.materials.methods
 			_secondaryUVFragmentReg = value;
 		}
 
+
+		arcane function get VCFragmentReg() : ShaderRegisterElement
+		{
+			return _vcFragmentReg;
+		}
+
+		arcane function set VCFragmentReg(value : ShaderRegisterElement) : void
+		{
+			_vcFragmentReg = value;
+		}
+
 		/**
 		 * The fragment register in which the view direction is stored.
 		 * @private
@@ -183,14 +233,54 @@ package away3d.materials.methods
 			_normalFragmentReg = value;
 		}
 
+		arcane function get normalVaryingReg() : ShaderRegisterElement
+		{
+			return _normalVaryingReg;
+		}
+
+		arcane function set normalVaryingReg(value : ShaderRegisterElement) : void
+		{
+			_normalVaryingReg = value;
+		}
+
+		arcane function get reflectVaryingReg() : ShaderRegisterElement
+		{
+			return _reflectVaryingReg;
+		}
+
+		arcane function set reflectVaryingReg(value : ShaderRegisterElement) : void
+		{
+			_reflectVaryingReg = value;
+		}
+
+		arcane function get refractVaryingReg() : ShaderRegisterElement
+		{
+			return _refractVaryingReg;
+		}
+
+		arcane function set refractVaryingReg(value : ShaderRegisterElement) : void
+		{
+			_refractVaryingReg = value;
+		}
+
+		arcane function get extendedReg() : ShaderRegisterElement
+		{
+			return _extendedReg;
+		}
+
+		arcane function set extendedReg(value : ShaderRegisterElement) : void
+		{
+			_extendedReg = value;
+		}
+
 		/**
 		 * Get the vertex shader code for this method.
 		 * @param regCache The register cache used during the compilation.
 		 * @private
 		 */
-		arcane function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		arcane function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			return "";
+			return null;
 		}
 
 		/**
@@ -227,16 +317,19 @@ package away3d.materials.methods
 		 * @param inputReg The texture stream register.
 		 * @return The fragment code that performs the sampling.
 		 */
-		protected function getTexSampleCode(vo : MethodVO, targetReg : ShaderRegisterElement, inputReg : ShaderRegisterElement, uvReg : ShaderRegisterElement = null, forceWrap : String = null) : String
+		protected function getTexSampleCode( chunk : ShaderChunk, vo : MethodVO, targetReg : ShaderRegisterElement, inputReg : ShaderRegisterElement, uvReg : ShaderRegisterElement = null, forceWrap : uint = 0, textype : uint = 0 ) : void
 		{
-			var wrap : String = forceWrap || (vo.repeatTextures ? "wrap" : "clamp");
-			var filter : String;
-
-			if (vo.useSmoothTextures) filter = vo.useMipmapping? "linear,miplinear" : "linear";
-			else filter = vo.useMipmapping ? "nearest,mipnearest" : "nearest";
-
+			var wrap : uint = forceWrap || (vo.repeatTextures ? Tex.WRAP : Tex.CLAMP );
+			var filter : uint = 0;
+			
+			if (vo.useSmoothTextures) filter |= Tex.LINEAR;
+			else filter |= Tex.NEAREST;
+			if( vo.useMipmapping ) 
+				filter |= vo.useSmoothTextures ? Tex.MIPLINEAR : Tex.MIPNEAREST;
+				
             uvReg ||= _uvFragmentReg;
-            return "tex "+targetReg.toString()+", "+uvReg.toString()+", "+inputReg.toString()+" <2d,"+filter+","+wrap+">\n";
+			
+			chunk.tex( targetReg.value(), uvReg.value(), inputReg.value() | wrap | filter | textype );
 		}
 
 		/**
@@ -254,15 +347,7 @@ package away3d.materials.methods
 		{
 		}
 
-		arcane function get tangentVaryingReg() : ShaderRegisterElement
-		{
-			return _tangentVaryingReg;
-		}
+	
 
-
-		arcane function set tangentVaryingReg(value : ShaderRegisterElement) : void
-		{
-			_tangentVaryingReg = value;
-		}
 	}
 }

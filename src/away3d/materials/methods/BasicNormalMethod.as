@@ -1,5 +1,6 @@
 package away3d.materials.methods
 {
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -10,7 +11,7 @@ package away3d.materials.methods
 
 	public class BasicNormalMethod extends ShadingMethodBase
 	{
-		private var _texture : Texture2DBase;
+		protected var _texture : Texture2DBase;
 		private var _useTexture : Boolean;
 		protected var _normalTextureRegister : ShaderRegisterElement;
 
@@ -71,11 +72,13 @@ package away3d.materials.methods
 			if (vo.texturesIndex >= 0) stage3DProxy.setTextureAt(vo.texturesIndex, _texture.getTextureForStage3D(stage3DProxy));
 		}
 
-		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
+			var chunk : ShaderChunk = new ShaderChunk( );
 			_normalTextureRegister = regCache.getFreeTextureReg();
 			vo.texturesIndex = _normalTextureRegister.index;
-			return getTexSampleCode(vo,  targetReg, _normalTextureRegister);
+			getTexSampleCode(chunk , vo,  targetReg, _normalTextureRegister, null, 0, _texture.samplerType );
+			return chunk;
 		}
 	}
 }

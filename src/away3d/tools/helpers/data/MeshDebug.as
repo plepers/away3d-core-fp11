@@ -1,5 +1,6 @@
 package away3d.tools.helpers.data
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
 	import away3d.entities.Mesh;
@@ -41,8 +42,8 @@ package away3d.tools.helpers.data
 			var l1 : Vector3D = new Vector3D();
 			
 			for (var i:uint = 0; i<numSubGeoms; ++i){					
-			 	vertices = SubGeometry(geometries[i]).vertexData;
-				indices = SubGeometry(geometries[i]).indexData;
+			 	vertices = VectorSubGeometry(geometries[i]).vertexData;
+				indices = VectorSubGeometry(geometries[i]).indexData;
 				for (j = 0; j < indices.length; j+=3){
 					
 					v0.x = vertices[index = indices[j]*3];
@@ -102,13 +103,13 @@ package away3d.tools.helpers.data
 			var l0 : Vector3D = new Vector3D();
 			 
 			for (var i:uint = 0; i<numSubGeoms; ++i){					
-			 	vertices = SubGeometry(geometries[i]).vertexData;
+			 	vertices = VectorSubGeometry(geometries[i]).vertexData;
 				try{
-					vectorTarget = (type == 1)? SubGeometry(geometries[i]).vertexNormalData : SubGeometry(geometries[i]).vertexTangentData;
+					vectorTarget = (type == 1)? VectorSubGeometry(geometries[i]).vertexNormalData : VectorSubGeometry(geometries[i]).vertexTangentData;
 				} catch(e:Error){
 					continue;
 				}
-				indices = SubGeometry(geometries[i]).indexData;
+				indices = VectorSubGeometry(geometries[i]).indexData;
 				for (j = 0; j < indices.length; j+=3){
 					
 					v0.x = vertices[index = indices[j]*3];

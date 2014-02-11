@@ -1,5 +1,6 @@
 package away3d.core.render
 {
+	import flash.display3D.Context3DBlendFactor;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.core.sort.EntitySorterBase;
@@ -43,19 +44,19 @@ package away3d.core.render
 		protected var _viewWidth : Number;
 		protected var _viewHeight : Number;
 
-		private var _renderableSorter : EntitySorterBase;
-		private var _backgroundImageRenderer : BackgroundImageRenderer;
-		private var _background : Texture2DBase;
+		protected var _renderableSorter : EntitySorterBase;
+		protected var _backgroundImageRenderer : BackgroundImageRenderer;
+		protected var _background : Texture2DBase;
 		
 		protected var _renderToTexture : Boolean;
 		protected var _antiAlias : uint;
 		protected var _textureRatioX : Number = 1;
 		protected var _textureRatioY : Number = 1;
 
-        private var _snapshotBitmapData:BitmapData;
-        private var _snapshotRequired:Boolean;
+        protected var _snapshotBitmapData:BitmapData;
+        protected var _snapshotRequired:Boolean;
 
-		private var _clearOnRender : Boolean = true;
+		protected var _clearOnRender : Boolean = true;
 
 		/**
 		 * Creates a new RendererBase object.
@@ -293,6 +294,7 @@ package away3d.core.render
 				if( _snapshotRequired && _snapshotBitmapData ) {
 					_context.drawToBitmapData( _snapshotBitmapData );
 					_snapshotRequired = false;
+					_snapshotBitmapData = null;
 				}
 	
 				if (_swapBackBuffer && !target) _context.present();
@@ -320,6 +322,10 @@ package away3d.core.render
 		protected function draw(entityCollector : EntityCollector, target : TextureBase) : void
 		{
 			throw new AbstractMethodError();
+		}
+		
+		protected function createBackgroundImageRenderer( proxy : Stage3DProxy  ) : BackgroundImageRenderer {
+			return new BackgroundImageRenderer( proxy );
 		}
 
 		/**
@@ -349,13 +355,15 @@ package away3d.core.render
 
 		arcane function set background(value : Texture2DBase) : void
 		{
+			if( _background == value ) return;
+			
 			if (_backgroundImageRenderer && !value) {
 				_backgroundImageRenderer.dispose();
 				_backgroundImageRenderer = null;
 			}
 
 			if (!_backgroundImageRenderer && value)
-				_backgroundImageRenderer = new BackgroundImageRenderer(_stage3DProxy);
+				_backgroundImageRenderer = createBackgroundImageRenderer(_stage3DProxy);
 
 			_background = value;
 

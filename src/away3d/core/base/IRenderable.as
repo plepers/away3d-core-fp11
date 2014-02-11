@@ -72,6 +72,8 @@ package away3d.core.base
 
 		function getSecondaryUVBuffer( stage3DProxy:Stage3DProxy ):VertexBuffer3D;
 
+		function getVertexColorBuffer( stage3DProxy:Stage3DProxy ):VertexBuffer3D;
+		
 		/**
 		 * Retrieves the VertexBuffer3D object that contains vertex normals.
 		 * @param context The Context3D for which we request the buffer
@@ -127,6 +129,7 @@ package away3d.core.base
 
 		function get vertexBufferOffset() : int;
 		function get normalBufferOffset() : int;
+		function get colorBufferOffset() : int;
 		function get tangentBufferOffset() : int;
 		function get UVBufferOffset() : int;
 		function get secondaryUVBufferOffset() : int;

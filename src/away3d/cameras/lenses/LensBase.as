@@ -1,13 +1,13 @@
 package away3d.cameras.lenses
 {
-	import flash.events.EventDispatcher;
-	import flash.geom.Matrix3D;
-	import flash.geom.Rectangle;
-	import flash.geom.Vector3D;
-	
 	import away3d.arcane;
 	import away3d.errors.AbstractMethodError;
 	import away3d.events.LensEvent;
+
+	import flash.events.EventDispatcher;
+
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
 
 	use namespace arcane;
 
@@ -17,8 +17,7 @@ package away3d.cameras.lenses
 	public class LensBase extends EventDispatcher
 	{
 		protected var _matrix : Matrix3D;
-		protected var _scissorRect:Rectangle = new Rectangle();
-		protected var _viewPort:Rectangle = new Rectangle();
+
 		protected var _near : Number = 20;
 		protected var _far : Number = 3000;
 		protected var _aspectRatio : Number = 1;
@@ -104,10 +103,6 @@ package away3d.cameras.lenses
 			var v : Vector3D = matrix.transformVector(point3d);
 			v.x = v.x/v.w;
 			v.y = -v.y/v.w;
-			
-			//z is unaffected by transform
-			v.z = point3d.z;
-			
 			return v;
 		}
 
@@ -133,15 +128,16 @@ package away3d.cameras.lenses
 		public function unproject(mX:Number, mY:Number, mZ : Number):Vector3D
 		{
 			var v : Vector3D = new Vector3D(mX, -mY, mZ, 1.0);
-			
-            v.x *= mZ;
-            v.y *= mZ;
-			
+
 			v = unprojectionMatrix.transformVector(v);
-			
-			//z is unaffected by transform
-            v.z = mZ;
-			
+
+			var inv : Number = 1/v.w;
+
+            v.x *= inv;
+            v.y *= inv;
+            v.z *= inv;
+			v.w = 1.0;
+
 			return v;
 		}
 
@@ -180,25 +176,6 @@ package away3d.cameras.lenses
 		protected function updateMatrix() : void
 		{
 			throw new AbstractMethodError();
-		}
-		
-		arcane function updateScissorRect(x:Number, y:Number, width:Number, height:Number):void
-		{
-			_scissorRect.x = x;
-			_scissorRect.y = y;
-			_scissorRect.width = width;
-			_scissorRect.height = height;
-			invalidateMatrix();
-		}
-		
-		
-		arcane function updateViewport(x:Number, y:Number, width:Number, height:Number):void
-		{
-			_viewPort.x = x;
-			_viewPort.y = y;
-			_viewPort.width = width;
-			_viewPort.height = height;
-			invalidateMatrix();
 		}
 	}
 }

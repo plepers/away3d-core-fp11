@@ -57,8 +57,8 @@ package away3d.materials
 		private var _requiresBlending : Boolean;
 
 		private var _blendMode : String = BlendMode.NORMAL;
-		private var _srcBlend : String = Context3DBlendFactor.SOURCE_ALPHA;
-		private var _destBlend : String = Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA;
+		public var _srcBlend : String = Context3DBlendFactor.SOURCE_ALPHA;
+		public var _destBlend : String = Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA;
 
 		protected var _numPasses : uint;
 		protected var _passes : Vector.<MaterialPassBase>;
@@ -85,7 +85,7 @@ package away3d.materials
 			_distancePass = new DistanceMapPass();
 			
 			// Default to considering pre-multiplied textures while blending
-			alphaPremultiplied = true;
+			alphaPremultiplied = false;
 
 			_uniqueId = MATERIAL_ID_COUNT++;
 		}
@@ -184,15 +184,29 @@ package away3d.materials
 		 */
 		public function dispose() : void
 		{
-			var i : uint;
 
-			for (i = 0; i < _numPasses; ++i) _passes[i].dispose();
-
+			while( _owners.length > 0 ) _owners[0].material = null;
+			while( _passes.length > 0 ) {
+				_passes[0].removeEventListener(Event.CHANGE, onPassChange);
+				_passes[0].dispose();
+				_passes.shift();
+			}
+			
+			_owners = null;
+			
+			_animationSet = null;
+			
+			_numPasses = 0;
+			
 			_depthPass.dispose();
 			_distancePass.dispose();
+			
+			_depthPass = null;
+			_distancePass = null;
 
 			if (_lightPicker)
 				_lightPicker.removeEventListener(Event.CHANGE, onLightsChange);
+			_lightPicker = null;
 		}
 
 		/**
@@ -328,6 +342,11 @@ package away3d.materials
 			return _passes[index].renderToTexture;
 		}
 
+		arcane function maskForPass(index : uint) : uint
+		{
+			return _passes[index].getMask();//renderToTexture ? 1:2;
+		}
+
 		/**
 		 * Sets the render state for a pass that is independent of the rendered object.
 		 * @param index The index of the pass to activate.
@@ -396,6 +415,8 @@ package away3d.materials
 		 */
 		arcane function addOwner(owner : IMaterialOwner) : void
 		{
+			if( _owners == null ) return; // disposed
+			
 			_owners.push(owner);
 			
 			if (owner.animator) {

@@ -1,11 +1,10 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
 	import away3d.arcane;
-	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
-
-	import flash.display3D.Context3DProgramType;
+	import com.instagal.ShaderChunk;
 
 	use namespace arcane;
 
@@ -36,38 +35,41 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var temp : ShaderRegisterElement;
 			var decReg : ShaderRegisterElement;
+			var tr : uint = targetReg.value();
 
 			if (!_useTexture) throw new Error("DepthDiffuseMethod requires texture!");
 
 			// incorporate input from ambient
 			if (vo.numLights > 0) {
 				if (_shadowRegister)
-					code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
-				code += "add " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz, " + targetReg + ".xyz\n" +
-						"sat " + targetReg + ".xyz, " + targetReg + ".xyz\n";
+					code.mul( _totalLightColorReg.value() ^xyz, _totalLightColorReg.value() ^xyz,  _shadowRegister.value() ^w );
+				
+				code.add( tr ^xyz, _totalLightColorReg.value() ^xyz, tr ^xyz );
+				code.sat( tr ^xyz, tr ^xyz);
 				regCache.removeFragmentTempUsage(_totalLightColorReg);
 			}
 
 			temp = vo.numLights > 0 ? regCache.getFreeFragmentVectorTemp() : targetReg;
+			var tp : uint = temp.value();
 
 			_diffuseInputRegister = regCache.getFreeTextureReg();
 			vo.texturesIndex = _diffuseInputRegister.index;
 			decReg = regCache.getFreeFragmentConstant();
 			vo.fragmentConstantsIndex = decReg.index*4;
-			code += getTexSampleCode(vo, temp, _diffuseInputRegister) +
-					"dp4 " + temp + ".x, " + temp + ", "+ decReg + "\n" +
-					"mov " + temp + ".yzw, " + temp + ".xxx			\n";
+			getTexSampleCode(code, vo, temp, _diffuseInputRegister, null, null, _texture.samplerType);
+			code.dp4( tp ^x,   tp , decReg.value() );
+			code.mov( tp ^yzw, tp ^x );
 
 			if (vo.numLights == 0)
 				return code;
 
-			code += "mul " + targetReg + ".xyz, " + temp + ".xyz, " + targetReg + ".xyz\n" +
-					"mov " + targetReg + ".w, " + temp + ".w\n";
+			code.mul( tr ^xyz, 	tp ^xyz, tr ^xyz );
+			code.mov( tr ^w, 	tp ^w );
 
 			return code;
 		}

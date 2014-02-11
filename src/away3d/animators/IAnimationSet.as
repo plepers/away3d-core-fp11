@@ -1,5 +1,6 @@
 package away3d.animators
 {
+	import com.instagal.ShaderChunk;
 	import away3d.core.managers.*;
 	import away3d.materials.passes.*;
 	
@@ -59,7 +60,7 @@ package away3d.animators
 		 *
 		 * @private
 		 */
-		function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Array, targetRegisters : Array) : String;
+		function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Vector.<uint>, targetRegisters : Vector.<uint>) : ShaderChunk;
 
 		/**
 		 * Sets the GPU render state required by the animation that is independent of the rendered mesh.

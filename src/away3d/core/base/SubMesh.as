@@ -128,6 +128,7 @@ package away3d.core.base
 		}
 
 		public function set material( value:MaterialBase ):void {
+			
 			if( _material ) _material.removeOwner( this );
 
 			_material = value;
@@ -165,6 +166,9 @@ package away3d.core.base
 			return _subGeometry.getVertexBuffer( stage3DProxy );
 		}
 
+		public function getVertexColorBuffer( stage3DProxy:Stage3DProxy ):VertexBuffer3D {
+			return _subGeometry.getColorBuffer( stage3DProxy );
+		}
 		/**
 		 * Retrieves the VertexBuffer3D object that contains vertex normals.
 		 * @param context The Context3D for which we request the buffer
@@ -293,6 +297,11 @@ package away3d.core.base
 			return _subGeometry.normalBufferOffset;
 		}
 
+		public function get colorBufferOffset() : int
+		{
+			return _subGeometry.colorBufferOffset;
+		}
+
 		public function get tangentBufferOffset() : int
 		{
 			return _subGeometry.tangentBufferOffset;
@@ -309,15 +318,15 @@ package away3d.core.base
 		}
 
 		public function get vertexData():Vector.<Number> {
-			return _subGeometry.vertexData;
+			return (_subGeometry as VectorSubGeometry).vertexData;
 		}
 
 		public function get indexData():Vector.<uint> {
-			return _subGeometry.indexData;
+			return (_subGeometry as VectorSubGeometry).indexData;
 		}
 
 		public function get UVData():Vector.<Number> {
-			return _subGeometry.UVData;
+			return (_subGeometry as VectorSubGeometry).UVData;
 		}
 
 		public function get bounds():BoundingVolumeBase {

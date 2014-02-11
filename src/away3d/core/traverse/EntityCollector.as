@@ -65,6 +65,7 @@ package away3d.core.traverse
 			_lightProbes = new Vector.<LightProbe>();
 			_renderableListItemPool = new RenderableListItemPool();
 			_entityListItemPool = new EntityListItemPool();
+			_camera = new Camera3D();
 		}
 
 		public function get numOpaques() : uint
@@ -87,8 +88,9 @@ package away3d.core.traverse
 
 		public function set camera(value : Camera3D) : void
 		{
-			_camera = value;
-			_entryPoint = _camera.scenePosition;
+			_camera.lens = value.lens;
+			_camera.transform = value.transform;
+			_entryPoint = value.scenePosition;
 		}
 
 		/**

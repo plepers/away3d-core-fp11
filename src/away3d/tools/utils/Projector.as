@@ -1,5 +1,6 @@
 package away3d.tools.utils
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.data.UV;
 	import away3d.entities.Mesh;
 	import away3d.containers.ObjectContainer3D;
@@ -133,7 +134,7 @@ package away3d.tools.utils
 		private static function remapLinear(geometries:Vector.<SubGeometry>, position:Vector3D):void
 		{
 			var numSubGeoms:uint = geometries.length;
-			var sub_geom:SubGeometry;
+			var sub_geom:VectorSubGeometry;
 			
 			var vertices:Vector.<Number>;
 			var indices:Vector.<uint>;
@@ -149,7 +150,7 @@ package away3d.tools.utils
 			var offsetV:Number;
 			 
 			 for (i = 0; i<numSubGeoms; ++i){					 
-				sub_geom = geometries[i];
+				sub_geom = geometries[i] as VectorSubGeometry;
 				vertices = sub_geom.vertexData;
 				indices = sub_geom.indexData;
 				uvs = sub_geom.UVData;
@@ -229,7 +230,7 @@ package away3d.tools.utils
 		private static function remapCylindrical(geometries:Vector.<SubGeometry>, position:Vector3D):void
 		{
 			var numSubGeoms:uint = geometries.length;
-			var sub_geom:SubGeometry;
+			var sub_geom:VectorSubGeometry;
 			
 			var vertices:Vector.<Number>;
 			var indices:Vector.<uint>;
@@ -244,7 +245,7 @@ package away3d.tools.utils
 			var offset:Number;
 			
 			 for (i = 0; i<numSubGeoms; ++i){					 
-				sub_geom = geometries[i];
+				sub_geom = geometries[i] as VectorSubGeometry;
 				vertices = sub_geom.vertexData;
 				indices = sub_geom.indexData;
 				uvs = sub_geom.UVData;
@@ -322,7 +323,7 @@ package away3d.tools.utils
 			// TODO: not used
 			position = position;
 			var numSubGeoms:uint = geometries.length;
-			var sub_geom:SubGeometry;
+			var sub_geom:VectorSubGeometry;
 			
 			var vertices:Vector.<Number>;
 			var indices:Vector.<uint>;
@@ -335,7 +336,7 @@ package away3d.tools.utils
 			var indLoop:uint;
 			 
 			 for (i = 0; i<numSubGeoms; ++i){					 
-				sub_geom = geometries[i];
+				sub_geom = geometries[i] as VectorSubGeometry;
 				vertices = sub_geom.vertexData;
 				indices = sub_geom.indexData;
 				uvs = sub_geom.UVData;

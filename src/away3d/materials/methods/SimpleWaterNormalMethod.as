@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -128,7 +130,7 @@ package away3d.materials.methods
 			}
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			var dataReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
@@ -138,12 +140,17 @@ package away3d.materials.methods
 			vo.texturesIndex = _normalTextureRegister.index;
 
 			vo.fragmentConstantsIndex = dataReg.index*4;
-			return	 "add " + temp + ", " + _uvFragmentReg + ", " + dataReg2 + ".xyxy\n" +
-					getTexSampleCode(vo, targetReg, _normalTextureRegister, temp) +
-					"add " + temp + ", " + _uvFragmentReg + ", " + dataReg2 + ".zwzw\n" +
-					getTexSampleCode(vo, temp, _normalTextureRegister2, temp) +
-					"add " + targetReg + ", " + targetReg + ", " + temp + "		\n" +
-					"mul " + targetReg + ", " + targetReg + ", " + dataReg + ".x	\n";
+			
+			var code: ShaderChunk = new ShaderChunk();
+			
+			code.add( temp.value(), _uvFragmentReg.value() , dataReg2.value() ^xyxy );
+			getTexSampleCode(code, vo, targetReg, _normalTextureRegister, temp, null, _texture.samplerType);
+			code.add( temp.value(), _uvFragmentReg.value() ,  dataReg2.value() ^zwzw);
+			
+			getTexSampleCode(code, vo, temp, _normalTextureRegister2, temp, null, _texture2.samplerType);
+			code.add( targetReg.value() ,  targetReg.value() ,  temp.value() );
+			code.add( targetReg.value() ,  targetReg.value() ,  dataReg ^x);
+			return code;
 		}
 	}
 }

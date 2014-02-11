@@ -64,7 +64,8 @@ package away3d.core.sort
 			if (!head) return headB;
 			if (!headB) return head;
 
-			while (head && headB) {
+			while (head && headB && head != null && headB != null) {
+				
 				if (head.zIndex < headB.zIndex) {
 					l = head;
 					head = head.next;
@@ -99,7 +100,7 @@ package away3d.core.sort
 			slow = head;
 			fast = head.next;
 
-			while (fast) {
+			while (fast != null) {
 				fast = fast.next;
 				if (fast) {
 					slow = slow.next;
@@ -120,11 +121,12 @@ package away3d.core.sort
 			var l : RenderableListItem;
 			var cmp : int;
 
-			if (!head) return headB;
-			if (!headB) return head;
+			if (head == null ) return headB;
+			if (headB == null ) return head;
 
-			while (head && headB) {
-
+			while (head && headB && head != null && headB != null) {
+				
+					
 				// first sort per render order id (reduces program3D switches),
 				// then on material id (reduces setting props),
 				// then on zIndex (reduces overdraw)
@@ -154,18 +156,18 @@ package away3d.core.sort
 					headB = headB.next;
 				}
 
-				if (!result) {
-					result = l;
+				if (result) {
+					curr.next = 
 					curr = l;
 				}
 				else {
-					curr.next = l;
+					result = 
 					curr = l;
 				}
 			}
 
-			if (head) curr.next = head;
-			else if (headB) curr.next = headB;
+			if (head != null) curr.next = head;
+			else if (headB != null ) curr.next = headB;
 
 			return result;
 		}

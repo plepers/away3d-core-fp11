@@ -68,7 +68,11 @@ package away3d.animators
 			
 			_poses[uint(0)] = _activeNode.currentGeometry;
 			_poses[uint(1)] = _activeNode.nextGeometry;
+			
+			
 			_weights[uint(0)] = 1 - (_weights[uint(1)] = _activeNode.blendWeight);
+
+//			trace( "away3d.animators.VertexAnimator - updateDeltaTime -- ",_activeNode.currentGeometry.name, _weights[uint(0)], _activeNode.nextGeometry.name, _weights[uint(1)] );
 		}
 		
 		

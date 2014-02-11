@@ -1,12 +1,7 @@
 package away3d.core.partition
 {
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-	
 	import away3d.arcane;
-	import away3d.bounds.BoundingVolumeBase;
 	import away3d.cameras.Camera3D;
-	import away3d.core.pick.PickingCollisionVO;
 	import away3d.core.traverse.PartitionTraverser;
 	import away3d.entities.Entity;
 
@@ -22,7 +17,7 @@ package away3d.core.partition
 	 */
 	public class EntityNode extends NodeBase
 	{
-		private var _entity : Entity;
+		protected var _entity : Entity;
 
 		/**
 		 * The link to the next object in the list to be updated
@@ -72,27 +67,18 @@ package away3d.core.partition
 		 */
 		override public function isInFrustum(camera : Camera3D) : Boolean
 		{
-			if (!_entity.isVisible) return false;
+			if (_entity.isVisible == false) return false;
 
 			_entity.pushModelViewProjection(camera);
-			
-			if (_entity.bounds.isInFrustum(_entity.getModelViewProjectionUnsafe()))
-				return true;
-			
-			_entity.popModelViewProjection();
-			
-			return false;
+			return true;
+			// TODO ?? For custo, we skip frustum since all the scene is almost always visible
+//			if (_entity.bounds.isInFrustum(_entity.getModelViewProjectionUnsafe())) {
+//				return true;
+//			}
+//			else {
+//				_entity.popModelViewProjection();
+//				return false;
+//			}
 		}
-		
-		/**
-		 * @inheritDoc
-		 */
-		override public function isIntersectingRay(rayPosition : Vector3D, rayDirection : Vector3D) : Boolean
-		{
-			if (!_entity.isVisible) return false;
-			
-			return _entity.isIntersectingRay(rayPosition, rayDirection);
-		}
-
 	}
 }

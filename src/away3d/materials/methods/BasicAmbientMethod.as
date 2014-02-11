@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -110,21 +112,20 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			
 			if (_useTexture) {
 				_ambientInputRegister = regCache.getFreeTextureReg();
 				vo.texturesIndex = _ambientInputRegister.index;
-				code += getTexSampleCode(vo, targetReg, _ambientInputRegister) +
-					// apparently, still needs to un-premultiply :s
-					"div " + targetReg + ".xyz, " + targetReg + ".xyz, " + targetReg + ".w\n";
+				getTexSampleCode(code, vo, targetReg, _ambientInputRegister, null, 0, _texture.samplerType);
+				code.div( targetReg.value() ^ xyz, targetReg.value() ^ xyz, targetReg.value() ^ w );
 			}
 			else {
 				_ambientInputRegister = regCache.getFreeFragmentConstant();
 				vo.fragmentConstantsIndex = _ambientInputRegister.index*4;
-				code += "mov " + targetReg + ", " + _ambientInputRegister + "\n";
+				code.mov( targetReg.value() , _ambientInputRegister.value() );
 			}
 
 			return code;

@@ -1,7 +1,9 @@
 package away3d.materials.passes
 {
+	import com.instagal.regs.*;
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
 	import away3d.animators.IAnimationSet;
-	import away3d.animators.IAnimator;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
@@ -54,15 +56,15 @@ package away3d.materials.passes
 		protected var _numPointLights : uint;
 		protected var _numDirectionalLights : uint;
 		protected var _numLightProbes : uint;
-		protected var _animatableAttributes : Array = ["va0"];
-		protected var _animationTargetRegisters : Array = ["vt0"];
+		protected var _animatableAttributes : Vector.<uint> = new <uint>[ a0 ];
+		protected var _animationTargetRegisters : Vector.<uint> = new <uint>[ t0 ];
 		
 		// keep track of previously rendered usage for faster cleanup of old vertex buffer streams and textures
 		private static var _previousUsedStreams : Vector.<int> = Vector.<int>([0, 0, 0, 0, 0, 0, 0, 0]);
 		private static var _previousUsedTexs : Vector.<int> = Vector.<int>([0, 0, 0, 0, 0, 0, 0, 0]);
 		protected var _defaultCulling : String = Context3DTriangleFace.BACK;
 
-		private var _renderToTexture : Boolean;
+		protected var _renderToTexture : Boolean;
 		private var _oldTarget : TextureBase;
 		private var _oldSurface : int;
 		private var _oldDepthStencil : Boolean;
@@ -71,6 +73,11 @@ package away3d.materials.passes
 
 		protected var _alphaPremultiplied : Boolean;
 
+		protected var _triRangeOff : Number = 0.0;
+		protected var _triRangeLen : Number = 1.0;
+		
+		
+		
 		/**
 		 * Creates a new MaterialPassBase object.
 		 */
@@ -80,6 +87,29 @@ package away3d.materials.passes
 			_numUsedStreams = 1;
 			_numUsedVertexConstants = 5;
 			if (!_rttData) _rttData = new <Number>[1, 1, 1, 1];
+		}
+		
+		
+		public function get triRangeOff() : Number {
+			return _triRangeOff;
+		}
+
+		public function set triRangeOff(triRangeOff : Number) : void {
+			if( triRangeOff > 1.0 ) triRangeOff = 1.0;
+			else if( triRangeOff < 0.0 ) triRangeOff = 0.0;
+			if( triRangeOff + _triRangeLen > 1.0 ) _triRangeLen = 1.0-triRangeOff;
+			_triRangeOff = triRangeOff;
+		}
+
+		public function get triRangeLen() : Number {
+			return _triRangeLen;
+		}
+
+		public function set triRangeLen(triRangeLen : Number) : void {
+			if( triRangeLen > 1.0 ) triRangeLen = 1.0;
+			else if( triRangeLen < 0.0 ) triRangeLen = 0.0;
+			if( triRangeOff + _triRangeLen > 1.0 ) _triRangeOff = 1.0-triRangeLen;
+			_triRangeLen = triRangeLen;
 		}
 
 		/**
@@ -235,18 +265,22 @@ package away3d.materials.passes
 		 */
 		arcane function render(renderable : IRenderable, stage3DProxy : Stage3DProxy, camera : Camera3D, lightPicker : LightPickerBase) : void
 		{
+			var ntri : uint = renderable.numTriangles;
+			var sindex : int = int( ntri * _triRangeOff ) * 3;
+			ntri *= _triRangeLen;
+			
 			var context : Context3D = stage3DProxy._context3D;
 			context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 0, renderable.getModelViewProjectionUnsafe(), true);
 			stage3DProxy.setSimpleVertexBuffer(0, renderable.getVertexBuffer(stage3DProxy), Context3DVertexBufferFormat.FLOAT_3, renderable.vertexBufferOffset);
-			context.drawTriangles(renderable.getIndexBuffer(stage3DProxy), 0, renderable.numTriangles);
+			context.drawTriangles(renderable.getIndexBuffer(stage3DProxy), sindex, ntri );
 		}
 
-		arcane function getVertexCode(code:String) : String
+		arcane function getVertexCode(headcode:ShaderChunk) : Shader
 		{
 			throw new AbstractMethodError();
 		}
 
-		arcane function getFragmentCode() : String
+		arcane function getFragmentCode() : Shader
 		{
 			throw new AbstractMethodError();
 		}
@@ -259,7 +293,7 @@ package away3d.materials.passes
 			if (_context3Ds[contextIndex] != context || !_program3Ds[contextIndex]) {
 				_context3Ds[contextIndex] = context;
 				updateProgram(stage3DProxy);
-				dispatchEvent(new Event(Event.CHANGE));
+				dispatchEvent(new Event(Event.CHANGE) );
 			}
 
 			var prevUsed : int = _previousUsedStreams[contextIndex];
@@ -269,7 +303,6 @@ package away3d.materials.passes
 			}
 
 			prevUsed = _previousUsedTexs[contextIndex];
-
 			for (i = _numUsedTextures; i < prevUsed; ++i)
 				stage3DProxy.setTextureAt(i, null);
 
@@ -303,6 +336,8 @@ package away3d.materials.passes
 		arcane function deactivate(stage3DProxy : Stage3DProxy) : void
 		{
 			var index : uint = stage3DProxy._stage3DIndex;
+			
+			
 			_previousUsedStreams[index] = _numUsedStreams;
 			_previousUsedTexs[index] = _numUsedTextures;
 
@@ -338,27 +373,32 @@ package away3d.materials.passes
 		 */
 		arcane function updateProgram(stage3DProxy : Stage3DProxy) : void
 		{
-			var animatorCode : String = "";
+			
+			var animatorCode : ShaderChunk;
 			
 			if (_animationSet && !_animationSet.usesCPU) {
 				animatorCode = _animationSet.getAGALVertexCode(this, _animatableAttributes, _animationTargetRegisters);
 			} else {
 				var len : uint = _animatableAttributes.length;
-	
+				animatorCode = new ShaderChunk();
 				// simply write attributes to targets, do not animate them
 				// projection will pick up on targets[0] to do the projection
 				for (var i : uint = 0; i < len; ++i)
-					animatorCode += "mov " + _animationTargetRegisters[i] + ", " + _animatableAttributes[i] + "\n";
+					animatorCode.mov( _animationTargetRegisters[i], _animatableAttributes[i] );
 			}
 			
-			var vertexCode : String = getVertexCode(animatorCode);
-			var fragmentCode : String = getFragmentCode();
+			var vertexCode : Shader = getVertexCode(animatorCode);
+			var fragmentCode : Shader = getFragmentCode();
+			
+			if( animatorCode ) animatorCode.dispose();
+			
 			if (Debug.active) {
-				trace ("Compiling AGAL Code:");
-				trace ("--------------------");
-				trace (vertexCode);
-				trace ("--------------------");
-				trace (fragmentCode);
+				// TODO instagal str representation for debug
+//				trace ("Compiling AGAL Code:");
+//				trace ("--------------------");
+//				trace (vertexCode);
+//				trace ("--------------------");
+//				trace (fragmentCode);
 			}
 			AGALProgram3DCache.getInstance(stage3DProxy).setProgram3D(this, vertexCode, fragmentCode);
 			//_programInvalids[stage3DProxy.stage3DIndex] = false;
@@ -398,5 +438,11 @@ package away3d.materials.passes
 		{
 			_alphaPremultiplied = value;
 		}
+
+		public function getMask() : uint {
+			return _renderToTexture?1:2;
+		}
+		
+
 	}
 }

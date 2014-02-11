@@ -1,5 +1,6 @@
 package away3d.animators
 {
+	import com.instagal.ShaderChunk;
 	import away3d.animators.IAnimationSet;
 	import away3d.materials.passes.MaterialPassBase;
 	import away3d.core.managers.Stage3DProxy;
@@ -15,7 +16,7 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALVertexCode(pass:MaterialPassBase, sourceRegisters:Array, targetRegisters:Array):String
+		public function getAGALVertexCode(pass:MaterialPassBase, sourceRegisters:Array, targetRegisters:Array):ShaderChunk
 		{
 			// TODO: Auto-generated method stub
 			return null;

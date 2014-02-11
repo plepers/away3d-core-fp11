@@ -1,11 +1,16 @@
-﻿package away3d.materials.passes
-{
+﻿package away3d.materials.passes {
+
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.lightpickers.LightPickerBase;
 	import away3d.textures.Texture2DBase;
+
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
 
 	import flash.display3D.Context3DProgramType;
 	import flash.display3D.Context3DVertexBufferFormat;
@@ -62,52 +67,54 @@
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
+			var sh : Shader = new Shader( Context3DProgramType.VERTEX );
+			sh.append( code );
+
 			// project
-			code += "m44 vt1, vt0, vc0		\n" +
-					"mul op, vt1, vc4\n";
+			sh.m44( t1, t0, c0	);
+			sh.mul( op, t1, c4 );
 
 			if (_alphaThreshold > 0) {
 				_numUsedTextures = 1;
 				_numUsedStreams = 2;
-				code +=	"mov v0, vt1\n" +
-						"mov v1, va1\n";
+				sh.mov( v0, t1 );
+				sh.mov( v1, a1 );
 
 			}
 			else {
 				_numUsedTextures = 0;
 				_numUsedStreams = 1;
-				code += "mov v0, vt1\n";
+				sh.mov( v0, t1 );
 			}
-
-			return code;
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			var wrap : String = _repeat ? "wrap" : "clamp";
-			var filter : String;
+			var wrap : uint = _repeat ? Tex.WRAP : Tex.CLAMP;
+			var filter : uint;
 
-			if (_smooth) filter = _mipmap ? "linear,miplinear" : "linear";
-			else filter = _mipmap ? "nearest,mipnearest" : "nearest";
+			if (_smooth) filter = _mipmap ? Tex.LINEAR|Tex.MIPLINEAR : Tex.LINEAR;
+			else filter = _mipmap ? Tex.NEAREST|Tex.MIPNEAREST:Tex.NEAREST;
 
-			var code : String =
-					"div ft2, v0, v0.w		\n" +
-					"mul ft0, fc0, ft2.z	\n" +
-					"frc ft0, ft0			\n" +
-					"mul ft1, ft0.yzww, fc1	\n";
+			var code : Shader = new Shader( Context3DProgramType.FRAGMENT );
+			code.div( t2, v0, v0^w		);
+			code.mul( t0, c0, t2^z	);
+			code.frc( t0, t0			);
+			code.mul( t1, t0^yzw, c1);
 
 			if (_alphaThreshold > 0) {
-				code += "tex ft3, v1, fs0 <2d,"+filter+","+wrap+">\n" +
-						"sub ft3.w, ft3.w, fc2.x\n" +
-						"kil ft3.w\n";
+				code.tex( t3, v1, s0 | filter | wrap );
+				code.sub( t3^w, t3^w, c2^x);
+				code.kil( t3^w );
 			}
 
-			code += "sub oc, ft0, ft1		\n";
+			code.sub( oc, t0, t1 );
 
 			return code;
 		}

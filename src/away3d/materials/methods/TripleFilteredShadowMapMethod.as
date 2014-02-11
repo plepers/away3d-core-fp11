@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.Tex;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.lights.DirectionalLight;
 	import away3d.lights.PointLight;
@@ -35,7 +38,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var depthMapRegister : ShaderRegisterElement = regCache.getFreeTextureReg();
 			var decReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
@@ -43,155 +46,136 @@ package away3d.materials.methods
 			var customDataReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var depthCol : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			var uvReg : ShaderRegisterElement;
-			var code : String;
+			var code : ShaderChunk = new ShaderChunk();
 			vo.fragmentConstantsIndex = decReg.index*4;
 
 			regCache.addFragmentTempUsages(depthCol, 1);
 
 			uvReg = regCache.getFreeFragmentVectorTemp();
 			regCache.addFragmentTempUsages(uvReg, 1);
+			
+			var uvr : uint = uvReg.value();
+			var dcl : uint = depthCol.value();
+			var tgr : uint = targetReg.value();
+			var dcr : uint = _depthMapCoordReg.value();
+			var vdf : uint = _viewDirFragmentReg.value();
+			var dmr : uint = depthMapRegister.value();
+			var drg : uint = customDataReg.value();
+			var ddr : uint = dataReg.value();
+			var dec : uint = decReg.value();
+			
+			var smp : uint = depthMapRegister.value() | Tex.NEAREST|Tex.CLAMP;
 
-			code = 	"mov " + uvReg + ", " + _depthMapCoordReg + "\n" +
-//					"sub " + uvReg+".x, " + _depthMapVar+".x, " + dataReg+".w	\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol+".z, " + depthCol+".z, " + dataReg + ".x		\n" +	// offset by epsilon
-					"slt " + uvReg+".z, " + _depthMapCoordReg+".z, " + depthCol + ".z	\n" +    // 0 if in shadow
-
-					"add " + uvReg+".x, " + uvReg+".x, " + customDataReg+".z		\n" + // (1, 0)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol+".z, " + depthCol+".z, " + dataReg+".x		\n" + 	// offset by epsilon
-					"slt " + uvReg+".w, " + _depthMapCoordReg+".z, " + depthCol+".z		\n" +    // 0 if in shadow
-
-					"div " + depthCol+".x, " + _depthMapCoordReg+".x, " + customDataReg+".z		\n" +
-					"frc " + depthCol+".x, " + depthCol+".x		\n" +
-					"sub " + uvReg+".w, " + uvReg+".w, " + uvReg+".z		\n" +
-					"mul " + uvReg+".w, " + uvReg+".w, " + depthCol+".x		\n" +
-					"add " + _viewDirFragmentReg+".w, " + uvReg+".z, " + uvReg+".w		\n" +
-
-					"sub " + uvReg+".x, " + _depthMapCoordReg+".x, " + customDataReg+".z	\n" +
-					"add " + uvReg+".y, " + _depthMapCoordReg+".y, " + customDataReg+".z	\n" +	// (0, 1)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol + ".z, " + depthCol+".z, " + dataReg+".x		\n" + 	// offset by epsilon
-					"slt " + uvReg + ".z, " + _depthMapCoordReg+".z, " + depthCol+".z		\n" +   // 0 if in shadow
-
-					"add " + uvReg + ".x, " + uvReg+".x, " + customDataReg+".z						\n" +	// (1, 1)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol + ".z, " + depthCol+".z, " + dataReg+".x				\n" +	// offset by epsilon
-					"slt " + uvReg + ".w, " + _depthMapCoordReg+".z, " + depthCol+".z			\n" +   // 0 if in shadow
-
-					// recalculate fraction, since we ran out of registers :(
-					"mul " + depthCol + ".x, " + _depthMapCoordReg+".x, " + customDataReg+".y			\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x								\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z					\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x				\n" +
-					"add " + uvReg + ".w, " + uvReg + ".z, " + uvReg + ".w					\n" +
-
-					"mul " + depthCol + ".x, " + _depthMapCoordReg + ".y, " + customDataReg+".y		\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x								\n" +
-					"sub " + uvReg + ".w, " + uvReg+".w, " + _viewDirFragmentReg+".w		\n" +
-					"mul " + uvReg + ".w, " + uvReg+".w, " + depthCol + ".x					\n" +
-					"add " + targetReg + ".w, " + _viewDirFragmentReg+".w, " + uvReg+".w	\n" +
-
-
-
-//					"mov " + uvReg + ".x, " + _depthMapVar+".x						\n" +
-					"sub " + uvReg + ".xy, " + _depthMapCoordReg+".xy, " + customDataReg+".zz		\n" +
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol + ".z, " + depthCol + ".z, " + dataReg+".x	\n" +	// offset by epsilon
-					"slt " + uvReg + ".z, " + _depthMapCoordReg + ".z, " + depthCol+".z	\n" +   // 0 if in shadow
-
-					"add " + uvReg + ".x, " + uvReg+".x, " + customDataReg+".z			\n" +	// (1, 0)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol + ".z, " + depthCol + ".z, " + dataReg + ".x				\n" +	// offset by epsilon
-					"slt " + uvReg+".w, " + _depthMapCoordReg+".z, " + depthCol+".z					\n" +   // 0 if in shadow
-
-					"div " + depthCol+".x, " + _depthMapCoordReg+".x, " + customDataReg+".z		\n" +
-					"frc " + depthCol+".x, " + depthCol+".x								\n" +
-					"sub " + uvReg+".w, " + uvReg+".w, " + uvReg+".z					\n" +
-					"mul " + uvReg+".w, " + uvReg+".w, " + depthCol+".x					\n" +
-					"add " + _viewDirFragmentReg + ".w, " + uvReg+".z, " + uvReg + ".w	\n" +
-
-					"mov " + uvReg+".x, " + _depthMapCoordReg + ".x							\n" +
-					"add " + uvReg+".y, " + uvReg+".y, " + customDataReg + ".z				\n" +	// (0, 1)
-					"tex " + depthCol + ", " + uvReg+ ", " + depthMapRegister+ " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol+".z, " + depthCol + ".z, " + dataReg + ".x		\n" +	// offset by epsilon
-					"slt " + uvReg+".z, " + _depthMapCoordReg + ".z, " + depthCol + ".z		\n" +   // 0 if in shadow
-
-					"add " + uvReg+".x, " + uvReg+".x, " + customDataReg + ".z				\n" +	// (1, 1)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + "\n" +
-					"sub " + depthCol+".z, " + depthCol+".z, " + dataReg + ".x			\n" +	// offset by epsilon
-					"slt " + uvReg+".w, " + _depthMapCoordReg + ".z, " + depthCol + ".z		\n" +   // 0 if in shadow
-
-					// recalculate fraction, since we ran out of registers :(
-					"mul " + depthCol + ".x, " + _depthMapCoordReg + ".x, " + customDataReg + ".y		\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x								\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z					\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x				\n" +
-					"add " + uvReg + ".w, " + uvReg + ".z, " + uvReg + ".w					\n" +
-
-					"mul " + depthCol + ".x, " + _depthMapCoordReg + ".y, " + customDataReg + ".y					\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x											\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + _viewDirFragmentReg + ".w				\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x							\n" +
-					"add " + _viewDirFragmentReg + ".w, " + _viewDirFragmentReg + ".w, " + uvReg + ".w	\n" +
-					"add " + targetReg + ".w, " + targetReg + ".w, " + _viewDirFragmentReg + ".w		\n";
-
-
-			code +=	"add " + uvReg + ".xy, " + _depthMapCoordReg + ".xy, " + customDataReg + ".zz						\n" +	// (1, 0)
-//					"mov " + uvReg + ".y, " + _depthMapVar + ".y										\n" +	// (1, 0)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg + 		"\n" +
-					"sub " + depthCol + ".z, " + depthCol + ".z, " + dataReg + ".x						\n" +	// offset by epsilon
-					"slt " + uvReg + ".z, " + _depthMapCoordReg + ".z, " + depthCol + ".z					\n" +   // 0 if in shadow
-
-					"add " + uvReg + ".x, " + uvReg + ".x, " + customDataReg + ".z							\n" +	// (2, 0)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg +		"\n" +
-					"sub " + depthCol + ".z, " + depthCol + ".z, " + dataReg + ".x						\n" +	// offset by epsilon
-					"slt " + uvReg + ".w, " + _depthMapCoordReg + ".z, " + depthCol + ".z					\n" +   // 0 if in shadow
-
-					"div " + depthCol + ".x, " + _depthMapCoordReg + ".x, " + customDataReg + ".z					\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x											\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z								\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x							\n" +
-					"add " + _viewDirFragmentReg + ".w, " + uvReg + ".z, " + uvReg + ".w				\n" +
-
-					"add " + uvReg+".xy, " + _depthMapCoordReg+".xy, " + customDataReg+".zz				\n" +	// (0, 1)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol + ".z, " + depthCol + ", " + decReg +		"\n" +
-					"sub " + depthCol + ".z, " + depthCol+".z, " + dataReg + ".x						\n" +	// offset by epsilon
-					"slt " + uvReg + ".z, " + _depthMapCoordReg+".z, " + depthCol + ".z					\n" +   // 0 if in shadow
-
-					"add " + uvReg+".x, " + uvReg+".x, " + customDataReg+".z							\n" +	// (1, 1)
-					"tex " + depthCol + ", " + uvReg + ", " + depthMapRegister + " <2d, nearest, clamp>\n" +
-					"dp4 " + depthCol+".z, " + depthCol + ", " + decReg + 		"\n" +
-					"sub " + depthCol+".z, " + depthCol+".z, " + dataReg+".x							\n" +	// offset by epsilon
-					"slt " + uvReg+".w, " + _depthMapCoordReg+".z, " + depthCol+".z						\n" +   // 0 if in shadow
-
-					// recalculate fraction, since we ran out of registers :(
-					"mul " + depthCol + ".x, " + _depthMapCoordReg + ".x, " + customDataReg + ".y		\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x											\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + uvReg + ".z								\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x							\n" +
-					"add " + uvReg + ".w, " + uvReg + ".z, " + uvReg + ".w								\n" +
-
-					"mul " + depthCol + ".x, " + _depthMapCoordReg+".y, " + customDataReg + ".y			\n" +
-					"frc " + depthCol + ".x, " + depthCol + ".x											\n" +
-					"sub " + uvReg + ".w, " + uvReg + ".w, " + _viewDirFragmentReg + ".w				\n" +
-					"mul " + uvReg + ".w, " + uvReg + ".w, " + depthCol + ".x							\n" +
-					"add " + _viewDirFragmentReg + ".w, " + _viewDirFragmentReg + ".w, " + uvReg + ".w	\n" +
-					"add " + targetReg + ".w, " + targetReg + ".w, " + _viewDirFragmentReg + ".w		\n" +
-
-
-					"mul " + targetReg+".w, " + targetReg+".w, " + customDataReg + ".x					\n";
+			code.mov(  uvr ,    dcr				);
+			code.tex(  dcl ,    uvr ,    smp	);
+			code.dp4(  dcl ^z,  dcl ,    dec	);
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl   ,  uvr ,    smp	);
+			code.dp4(  dcl ^z,  dcl ,    dec 	);
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.div(  dcl ^x,  dcr ^x,  drg ^z	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  vdf ^w,  uvr ^z,  uvr ^w	);
+			code.sub(  uvr ^x,  dcr ^x,  drg ^z	);
+			code.add(  uvr ^y,  dcr ^y,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp	);
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.mul(  dcl ^x,  dcr ^x,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  uvr ^w,  uvr ^z,  uvr ^w	);
+			code.mul(  dcl ^x,  dcr ^y,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  vdf ^w	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  tgr ^w,  vdf ^w,  uvr ^w	);
+			code.sub(  uvr ^xy, dcr ^xy, drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.div(  dcl ^x,  dcr ^x,  drg ^z	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  vdf ^w,  uvr ^z,  uvr ^w	);
+			code.mov(  uvr ^x,  dcr ^x			);
+			code.add(  uvr ^y,  uvr ^y,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.mul(  dcl ^x,  dcr ^x,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  uvr ^w,  uvr ^z,  uvr ^w	);
+			code.mul(  dcl ^x,  dcr ^y,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  vdf ^w	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  vdf ^w,  vdf ^w,  uvr ^w	);
+			code.add(  tgr ^w,  tgr ^w,  vdf ^w	);
+			code.add(  uvr ^xy, dcr ^xy, drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.div(  dcl ^x,  dcr ^x,  drg ^z	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  vdf ^w,  uvr ^z,  uvr ^w	);
+			code.add(  uvr ^xy, dcr ^xy, drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec    );
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^z,  dcr ^z,  dcl ^z	);
+			code.add(  uvr ^x,  uvr ^x,  drg ^z	);
+			code.tex(  dcl ,    uvr ,    smp    );
+			code.dp4(  dcl ^z,  dcl ,    dec 	);
+			code.sub(  dcl ^z,  dcl ^z,  ddr ^x	);
+			code.slt(  uvr ^w,  dcr ^z,  dcl ^z	);
+			code.mul(  dcl ^x,  dcr ^x,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  uvr ^z	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  uvr ^w,  uvr ^z,  uvr ^w	);
+			code.mul(  dcl ^x,  dcr ^y,  drg ^y	);
+			code.frc(  dcl ^x,  dcl ^x			);
+			code.sub(  uvr ^w,  uvr ^w,  vdf ^w	);
+			code.mul(  uvr ^w,  uvr ^w,  dcl ^x	);
+			code.add(  vdf ^w,  vdf ^w,  uvr ^w	);
+			code.add(  tgr ^w,  tgr ^w,  vdf ^w	);
+			code.mul(  tgr ^w,  tgr ^w,  drg ^x	);
 
 
 			regCache.removeFragmentTempUsage(depthCol);

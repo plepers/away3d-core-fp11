@@ -15,9 +15,9 @@ package away3d.core.partition
 	 */
 	public class Partition3D
 	{
-		private var _rootNode : NodeBase;
-		private var _updatesMade : Boolean;
-		private var _updateQueue : EntityNode;
+		protected var _rootNode : NodeBase;
+		protected var _updatesMade : Boolean;
+		protected var _updateQueue : EntityNode;
 
 		/**
 		 * Creates a new Partition3D object.
@@ -109,7 +109,7 @@ package away3d.core.partition
 		/**
 		 * Updates all entities that were marked for update.
 		 */
-		private function updateEntities() : void
+		protected function updateEntities() : void
 		{
 			var node : EntityNode = _updateQueue;
 			var targetNode : NodeBase;

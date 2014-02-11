@@ -1,12 +1,13 @@
-package away3d.materials.methods
-{
+package away3d.materials.methods {
+
+	import com.instagal.regs.*;
 	import away3d.arcane;
-	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
 	import away3d.textures.Texture2DBase;
 
-	import flash.display3D.Context3DProgramType;
+	import com.instagal.ShaderChunk;
+	import com.instagal.Tex;
 
 	use namespace arcane;
 
@@ -44,7 +45,7 @@ package away3d.materials.methods
 		{
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			var dataReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
@@ -52,20 +53,26 @@ package away3d.materials.methods
 			_normalTextureRegister = regCache.getFreeTextureReg();
 			vo.texturesIndex = _normalTextureRegister.index;
 			vo.fragmentConstantsIndex = dataReg.index*4;
-
-			return	getTexSampleCode(vo, targetReg, _normalTextureRegister, _uvFragmentReg, "clamp") +
-
-					"add " + temp + ", " + _uvFragmentReg + ", " + dataReg + ".xzzz\n" +
-					getTexSampleCode(vo, temp, _normalTextureRegister, temp, "clamp") +
-					"sub " + targetReg + ".x, " + targetReg + ".x, " + temp + ".x\n" +
-
-					"add " + temp + ", " + _uvFragmentReg + ", " + dataReg + ".zyzz\n" +
-					getTexSampleCode(vo, temp, _normalTextureRegister, temp, "clamp") +
-					"sub " + targetReg + ".z, " + targetReg + ".z, " + temp + ".x\n" +
-
-					"mov " + targetReg + ".y, " + dataReg + ".w\n" +
-					"mul " + targetReg + ".xz, " + targetReg + ".xz, " + dataReg2 + ".xy\n" +
-					"nrm " + targetReg + ".xyz, " + targetReg + ".xyz\n";
+			
+			var code : ShaderChunk = new ShaderChunk();
+			
+			var tgt : uint = targetReg.value();
+			
+		
+			getTexSampleCode(code, vo, targetReg, _normalTextureRegister, _uvFragmentReg, Tex.CLAMP, _texture.samplerType);
+			code.add(  temp.value()      , _uvFragmentReg.value(),dataReg.value() ^xz);
+			
+			getTexSampleCode(code, vo, temp, _normalTextureRegister, temp, Tex.CLAMP, _texture.samplerType);
+			code.sub(  tgt  ^x   , tgt ^x, temp.value() ^x);
+			code.add(  temp.value()      , _uvFragmentReg.value() ,  dataReg.value() ^zyz);
+			
+			getTexSampleCode(code, vo, temp, _normalTextureRegister, temp, Tex.CLAMP, _texture.samplerType);
+			code.sub(  tgt  ^z   , tgt ^z, temp.value() ^x);
+			code.mov(  tgt  ^y   , dataReg.value() ^w);
+			code.mul(  tgt  ^xz  , tgt ^xz, dataReg2.value() ^xy);
+			code.nrm(  tgt  ^xyz , tgt ^xyz);
+			
+			return code;
 		}
 	}
 }

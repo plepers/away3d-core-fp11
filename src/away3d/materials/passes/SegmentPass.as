@@ -1,5 +1,8 @@
 ﻿package away3d.materials.passes
 {
+	import com.instagal.regs.*;
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
 	import away3d.animators.IAnimator;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
@@ -40,74 +43,49 @@
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
-			code =
-					"m44 vt0, va0, vc8				\n" + // transform Q0 to eye space
-					"m44 vt1, va1, vc8				\n" + // transform Q1 to eye space
-
-					"sub vt2, vt1, vt0 				\n" + // L = Q1 - Q0
-
-						// test if behind camera near plane
-						// if 0 - Q0.z < Camera.near then the point needs to be clipped
-//					"neg vt5.x, vt0.z				\n" + // 0 - Q0.z
-					"slt vt5.x, vt0.z, vc7.z		\n" + // behind = ( 0 - Q0.z < -Camera.near ) ? 1 : 0
-					"sub vt5.y, vc5.x, vt5.x		\n" + // !behind = 1 - behind
-
-				// p = point on the plane (0,0,-near)
-				// n = plane normal (0,0,-1)
-				// D = Q1 - Q0
-				// t = ( dot( n, ( p - Q0 ) ) / ( dot( n, d )
-
-				// solve for t where line crosses Camera.near
-					"add vt4.x, vt0.z, vc7.z		\n" + // Q0.z + ( -Camera.near )
-					"sub vt4.y, vt0.z, vt1.z		\n" + // Q0.z - Q1.z
-					"div vt4.z, vt4.x, vt4.y		\n" + // t = ( Q0.z - near ) / ( Q0.z - Q1.z )
-
-					"mul vt4.xyz, vt4.zzz, vt2.xyz	\n" + // t(L)
-					"add vt3.xyz, vt0.xyz, vt4.xyz	\n" + // Qclipped = Q0 + t(L)
-					"mov vt3.w, vc5.x				\n" + // Qclipped.w = 1
-
-				// If necessary, replace Q0 with new Qclipped
-					"mul vt0, vt0, vt5.yyyy			\n" + // !behind * Q0
-					"mul vt3, vt3, vt5.xxxx			\n" + // behind * Qclipped
-					"add vt0, vt0, vt3				\n" + // newQ0 = Q0 + Qclipped
-
-				// calculate side vector for line
-					"sub vt2, vt1, vt0 				\n" + // L = Q1 - Q0
-					"nrm vt2.xyz, vt2.xyz			\n" + // normalize( L )
-					"nrm vt5.xyz, vt0.xyz			\n" + // D = normalize( Q1 )
-					"mov vt5.w, vc5.x				\n" + // D.w = 1
-					"crs vt3.xyz, vt2, vt5			\n" + // S = L x D
-					"nrm vt3.xyz, vt3.xyz			\n" + // normalize( S )
-
-				// face the side vector properly for the given point
-					"mul vt3.xyz, vt3.xyz, va2.xxx	\n" + // S *= weight
-					"mov vt3.w, vc5.x				\n" + // S.w = 1
-
-				// calculate the amount required to move at the point's distance to correspond to the line's pixel width
-				// scale the side vector by that amount
-					"dp3 vt4.x, vt0, vc6			\n" + // distance = dot( view )
-					"mul vt4.x, vt4.x, vc7.x		\n" + // distance *= vpsod
-					"mul vt3.xyz, vt3.xyz, vt4.xxx	\n" + // S.xyz *= pixelScaleFactor
-
-				// add scaled side vector to Q0 and transform to clip space
-					"add vt0.xyz, vt0.xyz, vt3.xyz	\n" + // Q0 + S
-
-					"m44 vt0, vt0, vc0				\n" + // transform Q0 to clip space
-					"mul op, vt0, vc4				\n" + // transform Q0 to viewport
-
-				// interpolate color
-					"mov v0, va3					\n";
-			return code;
+			var sh : Shader = new Shader( Context3DProgramType.VERTEX );
+			sh.m44( t0     , a0     , c8			);
+			sh.m44( t1     , a1     , c8			);
+			sh.sub( t2     , t1     , t0 			);
+			sh.slt( t5^x   , t0^z   , c7^z	);
+			sh.sub( t5^y   , c5^x   , t5^x	);
+			sh.add( t4^x   , t0^z   , c7^z	);
+			sh.sub( t4^y   , t0^z   , t1^z	);
+			sh.div( t4^z   , t4^x   , t4^y	);
+			sh.mul( t4^xyz , t4^z , t2^xyz	);
+			sh.add( t3^xyz , t0^xyz , t4^xyz	);
+			sh.mov( t3^w   , c5^x				);
+			sh.mul( t0     , t0     , t5^y);
+			sh.mul( t3     , t3     , t5^x);
+			sh.add( t0     , t0     , t3		);
+			sh.sub( t2     , t1     , t0 	);
+			sh.nrm( t2^xyz , t2^xyz			);
+			sh.nrm( t5^xyz , t0^xyz			);
+			sh.mov( t5^w   , c5^x				);
+			sh.crs( t3^xyz , t2     , t5		);
+			sh.nrm( t3^xyz , t3^xyz			);
+			sh.mul( t3^xyz , t3^xyz , a2^x	);
+			sh.mov( t3^w   , c5^x				);
+			sh.dp3( t4^x   , t0     , c6		);
+			sh.mul( t4^x   , t4^x   , c7^x	);
+			sh.mul( t3^xyz , t3^xyz , t4^x	);
+			sh.add( t0^xyz , t0^xyz , t3^xyz	);
+			sh.m44( t0     , t0     , c0		);
+			sh.mul( op     , t0     , c4		);
+			sh.mov( v0     , a3				);
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			return "mov oc, v0\n";
+			var sh : Shader = new Shader( Context3DProgramType.FRAGMENT );
+			sh.mov( oc, v0 );
+			return sh;
 		}
 
 		/**

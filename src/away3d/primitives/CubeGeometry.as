@@ -1,7 +1,7 @@
 package away3d.primitives
 {
 	import away3d.arcane;
-	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 
 	use namespace arcane;
 
@@ -152,7 +152,7 @@ package away3d.primitives
 		/**
 		 * @inheritDoc
 		 */
-		protected override function buildGeometry(target : SubGeometry):void
+		protected override function buildGeometry(target : VectorSubGeometry):void
 		{
 			var vertices : Vector.<Number>;
 			var vertexNormals : Vector.<Number>;
@@ -356,7 +356,7 @@ package away3d.primitives
 		/**
 		 * @inheritDoc
 		 */
-		override protected function buildUVs(target : SubGeometry) : void
+		override protected function buildUVs(target : VectorSubGeometry) : void
 		{
 			var i : uint, j : uint, uidx : uint = 0;
 			var uvData : Vector.<Number>;

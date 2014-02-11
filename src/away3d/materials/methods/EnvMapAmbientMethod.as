@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.Tex;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -66,18 +69,18 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var cubeMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			vo.texturesIndex = cubeMapReg.index;
 
-			code += "tex " + targetReg + ", " + _normalFragmentReg + ", " + cubeMapReg + " <cube,linear,miplinear,clamp>\n";
+			code.tex( targetReg.value(), _normalFragmentReg.value(), cubeMapReg.value() |Tex.CUBE|Tex.LINEAR|Tex.MIPLINEAR|Tex.CLAMP );
 
 			_ambientInputRegister = regCache.getFreeFragmentConstant();
 			vo.fragmentConstantsIndex = _ambientInputRegister.index;
 
-			code += "add " + targetReg+".xyz, " + targetReg+".xyz, " + _ambientInputRegister+".xyz\n";
+			code.add( targetReg.value() ^xyz, targetReg.value()^xyz,_ambientInputRegister.value()^xyz);
 
 			return code;
 		}

@@ -98,7 +98,9 @@ package away3d.filters.tasks
 
 		public function dispose() : void
 		{
-			if (_mainInputTexture) _mainInputTexture.dispose();
+			if (_mainInputTexture) {
+				_mainInputTexture.dispose();
+			}
 			if (_program3D) _program3D.dispose();
 		}
 
@@ -130,7 +132,9 @@ package away3d.filters.tasks
 
 		protected function updateTextures(stage : Stage3DProxy) : void
 		{
-			if (_mainInputTexture) _mainInputTexture.dispose();
+			if (_mainInputTexture) {
+				_mainInputTexture.dispose();
+			}
 
 			_mainInputTexture = stage.context3D.createTexture(_scaledTextureWidth, _scaledTextureHeight, Context3DTextureFormat.BGRA, true);
 

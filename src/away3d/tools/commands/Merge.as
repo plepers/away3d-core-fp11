@@ -1,5 +1,6 @@
 package away3d.tools.commands
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.containers.ObjectContainer3D;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
@@ -162,7 +163,8 @@ package away3d.tools.commands
 			var j : uint;
 			var i : uint;
 			var vecLength : uint;
-			var subGeom : SubGeometry;
+			var subGeom : VectorSubGeometry;
+			var cgeom : VectorSubGeometry;
 			var ds:DataSubGeometry;
 			
 			var geometry:Geometry = destMesh.geometry;
@@ -177,7 +179,7 @@ package away3d.tools.commands
 			
 			//empty mesh receiver case
 			if(numSubGeoms == 0){
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				subGeom.autoDeriveVertexNormals = true;
 				subGeom.autoDeriveVertexTangents = false;
 				vertices = new Vector.<Number>();
@@ -193,11 +195,12 @@ package away3d.tools.commands
 				numSubGeoms = 1;
 			}
 			
-			for (i = 0; i<numSubGeoms; ++i){					 
-				vertices = geometries[i].vertexData;
-				normals = geometries[i].vertexNormalData;
-				indices = geometries[i].indexData;
-				uvs = geometries[i].UVData;
+			for (i = 0; i<numSubGeoms; ++i){
+				cgeom = geometries[i] as VectorSubGeometry;
+				vertices = cgeom.vertexData;
+				normals = cgeom.vertexNormalData;
+				indices = cgeom.indexData;
+				uvs = cgeom.UVData;
 				
 				vertices.fixed = false;
 				normals.fixed = false;
@@ -211,7 +214,7 @@ package away3d.tools.commands
 				ds.normals = normals;
 				ds.material = (destMesh.subMeshes[i].material)? destMesh.subMeshes[i].material : destMesh.material; 
 				
-				ds.subGeometry = SubGeometry(geometries[i]);
+				ds.subGeometry = VectorSubGeometry(geometries[i]);
 				
 				vectors.push(ds);
 			}
@@ -250,7 +253,7 @@ package away3d.tools.commands
 					destDs = getDestSubgeom(vectors, ds);
 					if(!destDs){
 						destDs = _vectorsSource[i];
-						subGeom = new SubGeometry();
+						subGeom = new VectorSubGeometry();
 						destDs.subGeometry = subGeom;
 						
 						if(!_objectSpace){
@@ -316,7 +319,7 @@ package away3d.tools.commands
 						nuvs = destDs.uvs = new Vector.<Number>();
  
 						destDs.material = activeMaterial; 
-						destDs.subGeometry = new SubGeometry();
+						destDs.subGeometry = new VectorSubGeometry();
 						destDs.transform = ds.transform;
 						destDs.mesh = ds.mesh;
 						ds = destDs;
@@ -403,7 +406,7 @@ package away3d.tools.commands
 				
 			vectors = _vectorsSource = null;
 			
-			if(geometry.subGeometries[0].vertexData.length == 0 && geometry.subGeometries[0].indexData.length == 0)
+			if( (geometry.subGeometries[0] as VectorSubGeometry ).vertexData.length == 0 && ( geometry.subGeometries[0] as VectorSubGeometry ).indexData.length == 0)
 				geometry.removeSubGeometry(geometry.subGeometries[0]);
 		}
 		
@@ -425,16 +428,16 @@ package away3d.tools.commands
 			 
 			for (var i:uint = 0; i<geoms.length; ++i){					 
 				ds = new DataSubGeometry();
-				ds.vertices = SubGeometry(geoms[i]).vertexData.concat();
-				ds.indices = SubGeometry(geoms[i]).indexData.concat();
-				ds.uvs = SubGeometry(geoms[i]).UVData.concat();
-				ds.normals = SubGeometry(geoms[i]).vertexNormalData.concat();
+				ds.vertices = VectorSubGeometry(geoms[i]).vertexData.concat();
+				ds.indices = VectorSubGeometry(geoms[i]).indexData.concat();
+				ds.uvs = VectorSubGeometry(geoms[i]).UVData.concat();
+				ds.normals = VectorSubGeometry(geoms[i]).vertexNormalData.concat();
 				ds.vertices.fixed = false;
 				ds.normals.fixed = false;
 				ds.indices.fixed = false;
 				ds.uvs.fixed = false;
 				ds.material = (m.subMeshes[i].material)? m.subMeshes[i].material : m.material;
-				ds.subGeometry = SubGeometry(geoms[i]);
+				ds.subGeometry = VectorSubGeometry(geoms[i]);
 				ds.transform = m.transform;
 				ds.mesh = m;
 				
@@ -489,6 +492,7 @@ package away3d.tools.commands
 	}
 }
 
+import away3d.core.base.VectorSubGeometry;
 import away3d.core.base.SubGeometry;
 import away3d.entities.Mesh;
 import away3d.materials.MaterialBase;
@@ -500,7 +504,7 @@ class DataSubGeometry {
 	public var vertices:Vector.<Number>;
 	public var normals:Vector.<Number>;
 	public var indices:Vector.<uint>;
-	public var subGeometry:SubGeometry;
+	public var subGeometry:VectorSubGeometry;
 	public var material:MaterialBase;
 	public var transform:Matrix3D;
 	public var mesh:Mesh;

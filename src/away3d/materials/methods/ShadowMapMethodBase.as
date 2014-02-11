@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.lights.shadowmaps.DirectionalShadowMapper;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
@@ -121,20 +123,20 @@ package away3d.materials.methods
 			_depthMapCoordReg = null;
 		}
 
-		arcane override function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		arcane override function getVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			return _usePoint? getPointVertexCode(vo, regCache) : getPlanarVertexCode(vo, regCache);
 		}
 
-		protected function getPointVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		protected function getPointVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			vo.vertexConstantsIndex = -1;
-			return "";
+			return null;
 		}
 
-		protected function getPlanarVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		protected function getPlanarVertexCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var temp : ShaderRegisterElement = regCache.getFreeVertexVectorTemp();
 			var toTexReg : ShaderRegisterElement = regCache.getFreeVertexConstant();
 			var depthMapProj : ShaderRegisterElement = regCache.getFreeVertexConstant();
@@ -143,36 +145,38 @@ package away3d.materials.methods
 			regCache.getFreeVertexConstant();
 			_depthMapCoordReg = regCache.getFreeVarying();
 			vo.vertexConstantsIndex = (toTexReg.index-vo.vertexConstantsOffset)*4;
+			
+			var tr : uint = temp.value();
 
-			code += "m44 " + temp + ", vt0, " + depthMapProj + "\n" +
-					"rcp " + temp + ".w, " + temp + ".w\n" +
-					"mul " + temp + ".xyz, " + temp + ".xyz, " + temp + ".w\n" +
-					"mul " + temp + ".xy, " + temp + ".xy, " + toTexReg + ".xy\n" +
-					"add " + temp + ".xy, " + temp + ".xy, " + toTexReg + ".xx\n" +
-					"mov " + _depthMapCoordReg + ".xyz, " + temp + ".xyz\n" +
-					"mov " + _depthMapCoordReg + ".w, va0.w\n";
+			code.m44( tr   , t0, depthMapProj.value() );
+			code.rcp( tr   ^ w,   tr ^ w );
+			code.mul( tr   ^ xyz, tr ^ xyz,tr ^ w); 
+			code.mul( tr   ^ xy,  tr ^ xy, toTexReg.value() ^ xy);
+			code.add( tr   ^ xy,  tr ^ xy, toTexReg.value() ^ x);
+			code.mov( _depthMapCoordReg.value() ^xyz, tr ^ xyz);
+			code.mov( _depthMapCoordReg.value() ^w, a0 ^ w);
 
 			return code;
 		}
 
-		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = _usePoint? getPointFragmentCode(vo, regCache, targetReg) : getPlanarFragmentCode(vo, regCache, targetReg);
-			code += "add " + targetReg + ".w, " + targetReg + ".w, fc" + (vo.fragmentConstantsIndex/4+1) + ".y\n" +
-					"sat " + targetReg + ".w, " + targetReg + ".w\n";
+			var code : ShaderChunk = _usePoint? getPointFragmentCode(vo, regCache, targetReg) : getPlanarFragmentCode(vo, regCache, targetReg);
+			code.add( targetReg.value() ^w, targetReg.value() ^w, c0 + (vo.fragmentConstantsIndex/4+1)  ^ y );
+			code.sat( targetReg.value() ^w, targetReg.value() ^w );
 			return code;
 		}
 
-		protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		protected function getPlanarFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			throw new AbstractMethodError();
-			return "";
+			return null;
 		}
 
-		protected function getPointFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		protected function getPointFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			throw new AbstractMethodError();
-			return "";
+			return null;
 		}
 
 		arcane override function setRenderState(vo : MethodVO, renderable : IRenderable, stage3DProxy : Stage3DProxy, camera : Camera3D) : void

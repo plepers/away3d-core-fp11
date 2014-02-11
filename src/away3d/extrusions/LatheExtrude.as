@@ -1,5 +1,6 @@
 package away3d.extrusions
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.bounds.BoundingVolumeBase;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SubGeometry;
@@ -46,7 +47,7 @@ package away3d.extrusions
 		private var _startRotationOffset:Number = 0;
 		
 		private var _geomDirty : Boolean = true;
-		private var _subGeometry:SubGeometry;
+		private var _subGeometry:VectorSubGeometry;
 		private var _MaterialsSubGeometries:Vector.<SubGeometryList> = new Vector.<SubGeometryList>();
 		private var _maxIndProfile:uint;
 		private var _uva:UV;
@@ -94,7 +95,7 @@ package away3d.extrusions
 				flip:Boolean = false,  thickness:Number = 0, preciseThickness:Boolean = true, offsetRadius:Number = 0, materials:MultipleMaterials = null, ignoreSides:String = "", tweek:Object = null, smoothSurface:Boolean = true)
 		{
 			var geom : Geometry = new Geometry();
-			_subGeometry = new SubGeometry();
+			_subGeometry = new VectorSubGeometry();
 			
 			if(!material && materials && materials.front) material = materials.front;
 			super(geom, material);
@@ -973,7 +974,7 @@ package away3d.extrusions
 				
 			if(_MaterialsSubGeometries && _MaterialsSubGeometries.length>0){
 				var sglist:SubGeometryList;
-				var sg:SubGeometry;
+				var sg:VectorSubGeometry;
 				for(i = 1;i<6;++i){
 					sglist = _MaterialsSubGeometries[i];
 					sg = sglist.subGeometry;
@@ -1023,7 +1024,7 @@ package away3d.extrusions
 		
 		private function addFace(v0:Vector3D, v1:Vector3D, v2:Vector3D, uv0:UV, uv1:UV, uv2:UV, subGeomInd:uint):void
 		{
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			var uvs:Vector.<Number>;
 			var normals:Vector.<Number>;
 			var vertices:Vector.<Number>;
@@ -1054,7 +1055,7 @@ package away3d.extrusions
 				if(subGeomInd>0 && _MaterialsSubGeometries && _MaterialsSubGeometries[subGeomInd].subGeometry)
 					this.subMeshes[this.subMeshes.length-1].material = _MaterialsSubGeometries[subGeomInd].material;
 				 
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				subGeom.autoDeriveVertexTangents = true;
 				
 				if(_MaterialsSubGeometries && _MaterialsSubGeometries.length > 0){
@@ -1436,7 +1437,7 @@ package away3d.extrusions
 				}
 			}
 		 
-			var sg:SubGeometry;
+			var sg:VectorSubGeometry;
 			var prop:String;
 			for(i = 1;i<6;++i){
 				switch(i){
@@ -1461,7 +1462,7 @@ package away3d.extrusions
 				
 				if(_materials[prop] && _MaterialsSubGeometries[i].subGeometry == null){
 					sglist = _MaterialsSubGeometries[i];
-					sg = new SubGeometry();
+					sg = new VectorSubGeometry();
 					sglist.material = _materials[prop];
 					sglist.subGeometry = sg;
 					sg.autoDeriveVertexNormals = true;
@@ -1474,6 +1475,7 @@ package away3d.extrusions
 	}
 }
 
+import away3d.core.base.VectorSubGeometry;
 import away3d.core.base.SubGeometry;
 import away3d.materials.MaterialBase;
 
@@ -1485,7 +1487,7 @@ class SubGeometryList {
 	public var vertices:Vector.<Number>;
 	public var normals:Vector.<Number>;
 	public var indices:Vector.<uint>;
-	public var subGeometry:SubGeometry;
+	public var subGeometry:VectorSubGeometry;
 	public var material:MaterialBase;
 }
  

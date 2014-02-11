@@ -1,5 +1,6 @@
 package away3d.materials.methods
 {
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -42,14 +43,15 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var colorMultReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var colorOffsReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			vo.fragmentConstantsIndex = colorMultReg.index*4;
-			code += "mul " + targetReg + ", " + targetReg.toString() + ", " + colorMultReg + "\n" +
-					"add " + targetReg + ", " + targetReg.toString() + ", " + colorOffsReg + "\n";
+			var tr: uint = targetReg.value();
+			code.mul( tr , tr, colorMultReg.value() );
+			code.add( tr , tr, colorOffsReg.value() );
 			return code;
 		}
 

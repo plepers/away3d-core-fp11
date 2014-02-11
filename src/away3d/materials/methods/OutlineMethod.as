@@ -1,5 +1,6 @@
 package away3d.materials.methods
 {
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.passes.MaterialPassBase;
@@ -65,9 +66,9 @@ package away3d.materials.methods
 		{
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			return "";
+			return null;
 		}
 	}
 }

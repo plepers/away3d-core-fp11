@@ -1,7 +1,9 @@
 /**
  */
-package away3d.core.render
-{
+package away3d.core.render {
+
+	import away3d.arcane;
+	import flash.display3D.Context3DBlendFactor;
 	import away3d.cameras.Camera3D;
 	import away3d.core.managers.RTTBufferManager;
 	import away3d.core.managers.Stage3DProxy;
@@ -14,6 +16,8 @@ package away3d.core.render
 	import flash.display3D.VertexBuffer3D;
 	import flash.display3D.textures.Texture;
 	import flash.events.Event;
+	
+	use namespace arcane;
 
 	public class Filter3DRenderer
 	{
@@ -27,6 +31,11 @@ package away3d.core.render
 		private var _rttManager : RTTBufferManager;
 		private var _stage3DProxy : Stage3DProxy;
 		private var _filterSizesInvalid : Boolean = true;
+		
+		arcane var _backgroundR : Number = 0;
+		arcane var _backgroundG : Number = 0;
+		arcane var _backgroundB : Number = 0;
+		arcane var _backgroundAlpha : Number = 1;
 
 		public function Filter3DRenderer(stage3DProxy : Stage3DProxy)
 		{
@@ -111,6 +120,8 @@ package away3d.core.render
 			if (_filterSizesInvalid) updateFilterSizes();
 			if (_filterTasksInvalid) updateFilterTasks(stage3DProxy);
 
+			stage3DProxy.context3D.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA );
+
 			len = _filters.length;
 			for (i = 0; i < len; ++i) _filters[i].update(stage3DProxy, camera3D);
 
@@ -127,13 +138,14 @@ package away3d.core.render
 
 				if (!task.target) {
 					stage3DProxy.scissorRect = null;
+//					stage3DProxy.context3D.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
 					vertexBuffer = _rttManager.renderToScreenVertexBuffer;
 					context.setVertexBufferAt(0, vertexBuffer, 0, Context3DVertexBufferFormat.FLOAT_2);
 					context.setVertexBufferAt(1, vertexBuffer, 2, Context3DVertexBufferFormat.FLOAT_2);
 				}
 				stage3DProxy.setTextureAt(0, task.getMainInputTexture(stage3DProxy));
 				stage3DProxy.setProgram(task.getProgram3D(stage3DProxy));
-				context.clear(0.0, 0.0, 0.0, 1.0);
+				context.clear(  _backgroundR, _backgroundG, _backgroundB, _backgroundAlpha );
 				task.activate(stage3DProxy, camera3D, depthTexture);
 				context.drawTriangles(indexBuffer, 0, 2);
 				task.deactivate(stage3DProxy);

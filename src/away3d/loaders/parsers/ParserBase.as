@@ -1,8 +1,9 @@
-package away3d.loaders.parsers
-{
+package away3d.loaders.parsers {
+
 	import away3d.arcane;
 	import away3d.core.base.SkinnedSubGeometry;
 	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.errors.AbstractMethodError;
 	import away3d.events.AssetEvent;
 	import away3d.events.ParserEvent;
@@ -11,7 +12,7 @@ package away3d.loaders.parsers
 	import away3d.loaders.misc.ResourceDependency;
 	import away3d.loaders.parsers.utils.ParserUtil;
 	import away3d.tools.utils.TextureUtils;
-	
+
 	import flash.display.BitmapData;
 	import flash.events.EventDispatcher;
 	import flash.events.TimerEvent;
@@ -258,6 +259,15 @@ package away3d.loaders.parsers
 			startParsing(frameLimit);
 		}
 		
+
+		public function parseSync(data : *) : void
+		{
+			_data = data;
+			_frameLimit = 0; // script limit
+			proceedParsing();
+			_parsingComplete = true;
+		}
+		
 		/**
 		 * A list of dependencies that need to be loaded and resolved for the object being parsed.
 		 */
@@ -407,6 +417,7 @@ package away3d.loaders.parsers
 		 */
 		protected function hasTime() : Boolean
 		{
+			if( _frameLimit == 0 ) return true;
 			return ((getTimer() - _lastFrameTime) < _frameLimit);
 		}
 		
@@ -431,6 +442,7 @@ package away3d.loaders.parsers
 			_timer = new Timer(_frameLimit, 0);
 			_timer.addEventListener(TimerEvent.TIMER, onInterval);
 			_timer.start();
+			onInterval();
 		}
 		
 		
@@ -454,7 +466,7 @@ package away3d.loaders.parsers
 										  normals : Vector.<Number>, tangents : Vector.<Number>, 
 										  weights : Vector.<Number>, jointIndices : Vector.<Number>) : SubGeometry
 		{
-			var sub : SubGeometry;
+			var sub : VectorSubGeometry;
 			
 			if (weights && jointIndices) {
 				// If there were weights and joint indices defined, this
@@ -465,7 +477,7 @@ package away3d.loaders.parsers
 				SkinnedSubGeometry(sub).updateJointIndexData(jointIndices);
 			}
 			else {
-				sub = new SubGeometry();
+				sub = new VectorSubGeometry();
 			}
 			
 			sub.updateVertexData(verts);

@@ -18,7 +18,31 @@ package away3d.core.math
         public static function getAngle(w:Vector3D, q:Vector3D):Number
         {
             return Math.acos(w.dotProduct(q)/(w.length*q.length));
-        }
+		}
+
+		public static function crossUp( vec : Vector3D ) : void {
+			var x : Number = vec.x;
+			vec.x = -vec.z;
+			vec.y = 0.0;
+			vec.z = x;
+		}
+
+		public static function crossProduct( a : Vector3D, b : Vector3D, out : Vector3D ) : void {
+			out.x = a.y * b.z - a.z * b.y;
+			out.y = a.z * b.x - a.x * b.z;
+			out.z = a.x * b.y - a.y * b.x;
+		}
+
+		public static function distance( a : Vector3D, b : Vector3D ) : Number {
+			
+			var dx : Number = a.x-b.x; 
+			var dy : Number = a.y-b.y; 
+			var dz : Number = a.z-b.z; 
+			
+			return Math.sqrt( dx*dx + dy*dy + dz*dz );
+		}
+
+
         
         /**
     	 * Returns a <code>Vector3D</code> object with the euler angles represented by the 3x3 matrix rotation of the given <code>Matrix3D</code> object.

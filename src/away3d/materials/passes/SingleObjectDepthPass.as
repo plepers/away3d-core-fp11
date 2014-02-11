@@ -1,5 +1,8 @@
 package away3d.materials.passes
 {
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
+	import com.instagal.regs.*;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
@@ -48,8 +51,8 @@ package away3d.materials.passes
 										1.0 / 255.0,1.0 / 255.0,1.0 / 255.0,0.0
 									]);
 			
-			_animatableAttributes = ["va0", "va1"];
-			_animationTargetRegisters = ["vt0", "vt1"];
+			_animatableAttributes = new <uint>[ a0, a1 ];
+			_animationTargetRegisters = new <uint>[ t0, t1 ];
 		}
 
 		/**
@@ -102,38 +105,38 @@ package away3d.materials.passes
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
-
+			var sh : Shader = new Shader(Context3DProgramType.VERTEX);
+			sh.append( code );
 			// offset
-			code += "mul vt7, vt1, vc4.x	\n" +
-					"add vt7, vt7, vt0		\n" +
-					"mov vt7.w, vt0.w		\n";
+			sh.mul( t7, t1, c4^x	);
+			sh.add( t7, t7, t0		);
+			sh.mov( t7^w, t0^w		);
 			// project
-			code += "m44 vt2, vt7, vc0		\n" +
-					"mov op, vt2			\n";
-
+			sh.m44( t2, t7, c0	);
+			sh.mov( op, t2			);
 			// perspective divide
-			code += "div v0, vt2, vt2.w \n";
+			sh.div( v0, t2, t2^w  );
 
-			return code;
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			var code : String = "";
+			var sh : Shader = new Shader(Context3DProgramType.FRAGMENT);
 
 			// encode float -> rgba
-			code += "mul ft0, fc0, v0.z     \n" +
-                    "frc ft0, ft0           \n" +
-                    "mul ft1, ft0.yzww, fc1 \n" +
-                    "sub ft0, ft0, ft1      \n" +
-                    "mov oc, ft0            \n";
-
-			return code;
+			sh.mul( t0, c0, v0^z   );
+            sh.frc( t0, t0         );
+            sh.mul( t1, t0^yzw, c1 );
+            sh.sub( t0, t0, t1     );
+            sh.mov( oc, t0         );
+			
+			return sh;
 		}
 
 		/**

@@ -1,5 +1,6 @@
 package away3d.materials.methods
 {
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -60,25 +61,26 @@ package away3d.materials.methods
 			super.activate(vo, stage3DProxy);
 		}
 
-		arcane override function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String;
 			var lightMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			vo.secondaryTexturesIndex = lightMapReg.index;
-
-			code = getTexSampleCode(vo, temp, lightMapReg, _secondaryUVFragmentReg);
+			
+			var code : ShaderChunk = new ShaderChunk();
+			getTexSampleCode(code, vo, temp, lightMapReg, _secondaryUVFragmentReg, null, _texture.samplerType);
 
 			switch (_blendMode) {
 				case MULTIPLY:
-					code += "mul " + _totalLightColorReg + ", " + _totalLightColorReg + ", " + temp + "\n";
+					code.mul( _totalLightColorReg.value() ,_totalLightColorReg.value() , temp.value() );
 					break;
 				case ADD:
-					code += "add " + _totalLightColorReg + ", " + _totalLightColorReg + ", " + temp + "\n";
+					code.add( _totalLightColorReg.value(), _totalLightColorReg.value() , temp.value() );
 					break;
 			}
-
-			code += super.getFragmentPostLightingCode(vo, regCache, targetReg);
+			
+			var sup : ShaderChunk = super.getFragmentPostLightingCode(vo, regCache, targetReg);
+			if( sup ) code.push( sup );
 
 			return code;
 		}

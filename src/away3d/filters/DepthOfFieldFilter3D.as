@@ -84,6 +84,16 @@ package away3d.filters
 			_vDofTask.range = _hDofTask.range = value;
 		}
 
+		public function get focus() : Number
+		{
+			return _hDofTask.focus;
+		}
+
+		public function set focus(value : Number) : void
+		{
+			_vDofTask.focus = _hDofTask.focus = value;
+		}
+
 		/**
 		 * The maximum amount of horizontal blur.
 		 */

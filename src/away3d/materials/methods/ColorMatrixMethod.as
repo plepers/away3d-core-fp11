@@ -1,13 +1,11 @@
-package away3d.materials.methods
-{
+package away3d.materials.methods {
+
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
 
-	import flash.display3D.Context3D;
-	import flash.display3D.Context3DProgramType;
-	import flash.filters.ColorMatrixFilter;
+	import com.instagal.ShaderChunk;
 
 	use namespace arcane;
 
@@ -23,8 +21,14 @@ package away3d.materials.methods
 		/**
 		 * Creates a new ColorTransformMethod.
 		 */
-		public function ColorMatrixMethod(matrix : Array)
+		public function ColorMatrixMethod(matrix : Array = null)
 		{
+			matrix = matrix || [
+									1, 0, 0, 0, 0,
+									0, 1, 0, 0, 0,
+									0, 0, 1, 0, 0,
+									0, 0, 0, 1, 0
+									]
 			super();
 			if (matrix.length != 20)
 				throw new Error("Matrix length must be 20!");
@@ -43,14 +47,15 @@ package away3d.materials.methods
 		public function set colorMatrix(value:Array):void
 		{
 			_matrix = value;
+			trace( "away3d.materials.methods.ColorMatrixMethod - colorMatrix -- ", _matrix);
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var colorMultReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			regCache.getFreeFragmentConstant();
 			regCache.getFreeFragmentConstant();
@@ -58,9 +63,9 @@ package away3d.materials.methods
 			var colorOffsetReg : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			
 			vo.fragmentConstantsIndex = colorMultReg.index*4;
-
-			code += "m44 " + targetReg + ", " + targetReg + ", " + colorMultReg + "\n" +
-					"add " + targetReg + ", " + targetReg + ", " + colorOffsetReg + "\n";
+			var tr : uint = targetReg.value() ;
+			code.m44( tr, tr, colorMultReg.value()  );
+			code.add( tr, tr, colorOffsetReg.value());
 			
 			return code;
 		}

@@ -1,5 +1,6 @@
 package away3d.tools.serialize
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.animators.SkeletonAnimationState;
 	import away3d.animators.IAnimator;
 	import away3d.animators.data.JointPose;
@@ -96,7 +97,7 @@ package away3d.tools.serialize
 			}
 			if (subMesh.subGeometry)
 			{
-				serializeSubGeometry(subMesh.subGeometry, serializer);
+				serializeSubGeometry(subMesh.subGeometry as VectorSubGeometry, serializer);
 			}
 			serializer.endObject();
 		}
@@ -119,7 +120,7 @@ package away3d.tools.serialize
 			serializer.endObject();
 		}
 		
-		public static function serializeSubGeometry(subGeometry:SubGeometry, serializer:SerializerBase):void
+		public static function serializeSubGeometry(subGeometry:VectorSubGeometry, serializer:SerializerBase):void
 		{
 			serializer.beginObject(classNameFromInstance(subGeometry), null);
 			serializer.writeUint("numTriangles", subGeometry.numTriangles);

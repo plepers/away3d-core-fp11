@@ -1,12 +1,17 @@
-package away3d.materials.passes
-{
-	import away3d.animators.IAnimator;
+package away3d.materials.passes {
+
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
 	import away3d.arcane;
 	import away3d.cameras.Camera3D;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.textures.CubeTextureBase;
 
+	import com.instagal.Shader;
+	import com.instagal.ShaderChunk;
+
 	import flash.display3D.Context3DCompareMode;
+	import flash.display3D.Context3DProgramType;
 
 	use namespace arcane;
 
@@ -15,7 +20,7 @@ package away3d.materials.passes
 	 */
 	public class SkyBoxPass extends MaterialPassBase
 	{
-		private var _cubeTexture : CubeTextureBase;
+		protected var _cubeTexture : CubeTextureBase;
 
 		/**
 		 * Creates a new SkyBoxPass object.
@@ -42,21 +47,24 @@ package away3d.materials.passes
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getVertexCode(code:String) : String
+		arcane override function getVertexCode(code:ShaderChunk) : Shader
 		{
-			return  "m44 vt7, va0, vc0		\n" +
-					// fit within texture range
-					"mul op, vt7, vc4\n" +
-					"mov v0, va0\n";
+			var sh : Shader = new Shader(Context3DProgramType.VERTEX);
+			sh.m44( t7, a0, c0	);
+			sh.mul( op, t7, c4	);
+			sh.mov( v0, a0		);
+			return sh;
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCode() : String
+		arcane override function getFragmentCode() : Shader
 		{
-			return 	"tex ft0, v0, fs0 <cube,linear,clamp,miplinear>	\n" +
-					"mov oc, ft0							\n";
+			var sh : Shader = new Shader(Context3DProgramType.FRAGMENT);
+			sh.tex( t0, v0, s0 |Tex.CUBE|Tex.LINEAR|Tex.CLAMP|Tex.MIPLINEAR	);
+			sh.mov( oc, t0		);
+			return sh;
 		}
 
 		/**

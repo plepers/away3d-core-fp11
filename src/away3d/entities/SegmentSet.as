@@ -230,6 +230,10 @@
 			return null;
 		}
 
+		public function getVertexColorBuffer( stage3DProxy:Stage3DProxy ):VertexBuffer3D {
+			return null;
+		}
+
 		override public function get mouseEnabled():Boolean {
 			return false;
 		}
@@ -306,6 +310,11 @@
 		}
 
 		public function get normalBufferOffset() : int
+		{
+			return 0;
+		}
+
+		public function get colorBufferOffset() : int
 		{
 			return 0;
 		}

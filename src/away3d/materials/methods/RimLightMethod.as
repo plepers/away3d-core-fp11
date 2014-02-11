@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -88,36 +90,42 @@ package away3d.materials.methods
 			data[index+5] = _power;
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var dataRegister : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var dataRegister2 : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			vo.fragmentConstantsIndex = dataRegister.index*4;
-
-			code += "dp3 " + temp + ".x, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz	\n" +
-					"sat " + temp + ".x, " + temp + ".x														\n" +
-					"sub " + temp + ".x, " + dataRegister + ".w, " + temp + ".x								\n" +
-					"pow " + temp + ".x, " + temp + ".x, " + dataRegister2 + ".y							\n" +
-					"mul " + temp + ".x, " + temp + ".x, " + dataRegister2 + ".x							\n" +
-					"sub " + temp + ".x, " + dataRegister + ".w, " + temp + ".x								\n" +
-					"mul " + targetReg + ".xyz, " + targetReg + ".xyz, " + temp + ".x						\n" +
-					"sub " + temp + ".w, " + dataRegister + ".w, " + temp + ".x								\n";
-
+			
+			var vdr : uint = _viewDirFragmentReg.value();
+			var nrm : uint = _normalFragmentReg.value();
+			var tgr : uint = targetReg.value();
+			var tmp : uint = temp.value();
+			var dt1 : uint = dataRegister.value();
+			var dt2 : uint = dataRegister2.value();
+			
+			code.dp3( tmp ^x,    vdr ^xyz, nrm ^xyz	);
+			code.sat( tmp ^x,    tmp ^x				);
+			code.sub( tmp ^x,    dt1 ^w,   tmp ^x	);
+			code.pow( tmp ^x,    tmp ^x,   dt2 ^y	);
+			code.mul( tmp ^x,    tmp ^x,   dt2 ^x	);
+			code.sub( tmp ^x,    dt1 ^w,   tmp ^x	);
+			code.mul( tgr ^xyz,  tgr ^xyz, tmp ^x	);
+			code.sub( tmp ^w,    dt1 ^w,   tmp ^x	);
 
 			if (_blend == ADD) {
-				code += "mul " + temp + ".xyz, " + temp + ".w, " + dataRegister + ".xyz							\n" +
-						"add " + targetReg + ".xyz, " + targetReg+".xyz, " + temp + ".xyz						\n";
+				code.mul( tmp ^xyz,  tmp ^w,   dt1 ^xyz	);
+				code.add( tgr ^xyz,  tgr ^xyz, tmp ^xyz	);
 			}
 			else if (_blend == MULTIPLY) {
-				code += "mul " + temp + ".xyz, " + temp + ".w, " + dataRegister + ".xyz							\n" +
-						"mul " + targetReg + ".xyz, " + targetReg+".xyz, " + temp + ".xyz						\n";
+				code.mul( tmp ^xyz,  tmp ^w,   dt1 ^xyz	);
+				code.mul( tgr ^xyz,  tgr ^xyz, tmp ^xyz	);
 			}
 			else {
-				code += "sub " + temp + ".xyz, " + dataRegister + ".xyz, " + targetReg + ".xyz				\n" +
-						"mul " + temp + ".xyz, " + temp + ".xyz, " + temp + ".w								\n" +
-						"add " + targetReg + ".xyz, " + targetReg + ".xyz, " + temp + ".xyz					\n";
+				code.sub( tmp ^xyz,  dt1 ^xyz, tgr ^xyz	);
+				code.mul( tmp ^xyz,  tmp ^xyz, tmp ^w	);
+				code.add( tgr ^xyz,  tgr ^xyz, tmp ^xyz	);
 			}
 
 			return code;

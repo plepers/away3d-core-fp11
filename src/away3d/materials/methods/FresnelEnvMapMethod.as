@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.Tex;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -98,40 +101,38 @@ package away3d.materials.methods
 			stage3DProxy.setTextureAt(vo.texturesIndex, _cubeTexture.getTextureForStage3D(stage3DProxy));
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var dataRegister : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var cubeMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			vo.texturesIndex = cubeMapReg.index;
 			vo.fragmentConstantsIndex = dataRegister.index*4;
-
+			
+			var tmp : uint = temp.value();
+			var vdr : uint = _viewDirFragmentReg.value();
+			var nrm : uint = _normalFragmentReg.value();
+			var ddr : uint = dataRegister.value();
+			var tgr : uint = targetReg.value();
+			
 			// r = V - 2(V.N)*N
-			code += "dp3 " + temp + ".w, " + _viewDirFragmentReg + ".xyz, " + _normalFragmentReg + ".xyz		\n" +
-					"add " + temp + ".w, " + temp + ".w, " + temp + ".w											\n" +
-					"mul " + temp + ".xyz, " + _normalFragmentReg + ".xyz, " + temp + ".w						\n" +
-					"sub " + temp + ".xyz, " + _viewDirFragmentReg + ".xyz, " + temp + ".xyz					\n" +
-					"neg " + temp + ".xyz, " + temp + ".xyz														\n" +
-					"tex " + temp + ", " + temp + ", " + cubeMapReg + " <cube, " + (vo.useSmoothTextures? "linear" : "nearest") + ",miplinear,clamp>\n" +
-					"sub " + temp + ", " + temp + ", " + targetReg + "											\n";
-
-			// calculate fresnel term
-			code += "dp3 " + _viewDirFragmentReg+".w, " + _viewDirFragmentReg+".xyz, " + _normalFragmentReg+".xyz\n" +   // dot(V, H)
-            		"sub " + _viewDirFragmentReg+".w, " + dataRegister+".w, " + _viewDirFragmentReg+".w\n" +             // base = 1-dot(V, H)
-
-					"pow " + _viewDirFragmentReg+".w, " + _viewDirFragmentReg+".w, " + dataRegister+".z\n" +             // exp = pow(base, 5)
-
-					"sub " + _normalFragmentReg+".w, " + dataRegister+".w, " + _viewDirFragmentReg+".w\n" +             // 1 - exp
-					"mul " + _normalFragmentReg+".w, " + dataRegister+".y, " + _normalFragmentReg+".w\n" +             // f0*(1 - exp)
-					"add " + _viewDirFragmentReg+".w, " + _viewDirFragmentReg+".w, " + _normalFragmentReg+".w\n" +          // exp + f0*(1 - exp)
-
-					// total alpha
-					"mul " + _viewDirFragmentReg+".w, " + dataRegister+".x, " + _viewDirFragmentReg+".w\n" +
-
-					// blend
-					"mul " + temp + ", " + temp + ", " + _viewDirFragmentReg + ".w						\n" +
-					"add " + targetReg + ".xyzw, " + targetReg+".xyzw, " + temp + ".xyzw						\n";
+			code.dp3( tmp ^w	, vdr ^xyz	, nrm 	^xyz		);
+			code.add( tmp ^w	, tmp ^w  	, tmp 	^w		);
+			code.mul( tmp ^xyz	, nrm ^xyz	, tmp 	^w		);
+			code.sub( tmp ^xyz	, vdr ^xyz	, tmp 	^xyz		);
+			code.neg( tmp ^xyz	, tmp ^xyz );
+			code.tex( tmp 		, tmp 		, cubeMapReg |Tex.CUBE | (vo.useSmoothTextures? Tex.LINEAR : Tex.NEAREST ) | Tex.MIPLINEAR |Tex.CLAMP);
+			code.sub( tmp 		, tmp 		, tgr 												);
+			code.dp3( vdr ^w	, vdr ^xyz	, nrm 	^xyz); 
+            code.sub( vdr ^w	, ddr ^w	, vdr 	^w);   
+			code.pow( vdr ^w	, vdr ^w	, ddr 	^z);   
+			code.sub( nrm ^w	, ddr ^w	, vdr 	^w);   
+			code.mul( nrm ^w	, ddr ^y	, nrm 	^w);   
+			code.add( vdr ^w	, vdr ^w	, nrm 	^w);   
+			code.mul( vdr ^w	, ddr ^x	, vdr 	^w);
+			code.mul( tmp 		, tmp 		, vdr 	^w		);
+			code.add( tgr ^xyzw	, tgr ^xyzw	, tmp 	^xyzw	);
 
 
 			return code;

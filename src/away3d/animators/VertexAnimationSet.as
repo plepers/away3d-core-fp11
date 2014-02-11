@@ -1,5 +1,7 @@
 package away3d.animators
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.animators.*;
 	import away3d.animators.data.*;
 	import away3d.core.managers.*;
@@ -66,7 +68,7 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Array, targetRegisters : Array) : String
+		public function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Vector.<uint>, targetRegisters : Vector.<uint>) : ShaderChunk
 		{
 			if (_blendMode == VertexAnimationMode.ABSOLUTE)
 				return getAbsoluteAGALCode(pass, sourceRegisters, targetRegisters);
@@ -110,14 +112,15 @@ package away3d.animators
 		/**
 		 * Generates the vertex AGAL code for absolute blending.
 		 */
-		private function getAbsoluteAGALCode(pass : MaterialPassBase, sourceRegisters : Array, targetRegisters : Array) : String
+		private function getAbsoluteAGALCode(pass : MaterialPassBase, sourceRegisters : Vector.<uint>, targetRegisters : Vector.<uint>) : ShaderChunk
 		{
-			var code : String = "";
-			var temp1 : String = findTempReg(targetRegisters);
-			var temp2 : String = findTempReg(targetRegisters, temp1);
-			var regs : Array = ["x", "y", "z", "w"];
+			var code : ShaderChunk = new ShaderChunk();
+			var temp1 : uint = findTempReg(targetRegisters);
+			var temp2 : uint = findTempReg(targetRegisters, temp1);
+			
+			var regs : Array = [x, y, z, w];
 			var len : uint = sourceRegisters.length;
-			var constantReg : String = "vc" + pass.numUsedVertexConstants;
+			var constantReg : uint = c0 + pass.numUsedVertexConstants;
 			var useTangents : Boolean = _useTangents[pass] = len > 2;
 			_useNormals[pass] = len > 1;
 
@@ -125,38 +128,39 @@ package away3d.animators
 			var streamIndex : uint = _streamIndices[pass] = pass.numUsedStreams;
 
 			for (var i : uint = 0; i < len; ++i) {
-				code += "mul " + temp1 + ", " + sourceRegisters[i] + ", " + constantReg + "." + regs[0] + "\n";
+				code.mul( temp1, sourceRegisters[i] , constantReg ^ regs[0]  );
 
 				for (var j : uint = 1; j < _numPoses; ++j) {
-					code += "mul " + temp2 + ", va" + streamIndex + ", " + constantReg + "." + regs[j] + "\n";
+					code.mul( temp2 , a0 + streamIndex , constantReg  ^regs[j] );
 
 					if (j < _numPoses - 1)
-						code += "add " + temp1 + ", " + temp1 + ", " + temp2 + "\n";
+						code.add( temp1 , temp1 , temp2 );
 
 					++streamIndex;
 				}
 
-				code += "add " + targetRegisters[i] + ", " + temp1 + ", " + temp2 + "\n";
+				code.add( targetRegisters[i], temp1 ,temp2 );
 			}
 
 			// add code for bitangents if tangents are used
 			if (useTangents) {
-				code += "dp3 " + temp1 + ".x, " + sourceRegisters[uint(2)] + ", " + targetRegisters[uint(1)] + "\n" +
-						"mul " + temp1 + ", " + targetRegisters[uint(1)] + ", " + temp1 + ".x			 \n" +
-						"sub " + targetRegisters[uint(2)] + ", " + sourceRegisters[uint(2)] + ", " + temp1 + "\n";
+				code.dp3(  temp1 ^x,  sourceRegisters[uint(2)] , targetRegisters[uint(1)] );
+				code.mul(  temp1    , targetRegisters[uint(1)] , temp1 ^x			  );
+				code.sub(  targetRegisters[uint(2)] ,sourceRegisters[uint(2)] ,temp1 );
 			}
+			
 			return code;
 		}
 		
 		/**
 		 * Generates the vertex AGAL code for additive blending.
 		 */
-		private function getAdditiveAGALCode(pass : MaterialPassBase, sourceRegisters : Array, targetRegisters : Array) : String
+		private function getAdditiveAGALCode(pass : MaterialPassBase, sourceRegisters : Vector.<uint>, targetRegisters : Vector.<uint>) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var len : uint = sourceRegisters.length;
-			var regs : Array = ["x", "y", "z", "w"];
-			var temp1 : String = findTempReg(targetRegisters);
+			var regs : Array = [x, y, z, w];
+			var temp1 : uint = findTempReg(targetRegisters);
 			var k : uint;
 			var useTangents : Boolean = _useTangents[pass] = len > 2;
 			var useNormals : Boolean = _useNormals[pass] = len > 1;
@@ -164,21 +168,22 @@ package away3d.animators
 
 			if (len > 2) len = 2;
 
-			code += "mov  " + targetRegisters[0] + ", " + sourceRegisters[0] + "\n";
-			if (useNormals) code += "mov " + targetRegisters[1] + ", " + sourceRegisters[1] + "\n";
+			code.mov( targetRegisters[0], sourceRegisters[0] );
+			if (useNormals) 
+				code.mov( targetRegisters[1] , sourceRegisters[1] );
 
 			for (var i : uint = 0; i < len; ++i) {
 				for (var j : uint = 0; j < _numPoses; ++j) {
-					code += "mul " + temp1 + ", va" + (streamIndex + k) + ", vc" + pass.numUsedVertexConstants + "." + regs[j] + "\n" +
-							"add " + targetRegisters[i] + ", " + targetRegisters[i] + ", " + temp1 + "\n";
+					code.mul( temp1 , a0 + (streamIndex + k)  , c0 + pass.numUsedVertexConstants ^ regs[j] );
+					code.add( targetRegisters[i] , targetRegisters[i] , temp1 );
 					k++;
 				}
 			}
 
 			if (useTangents) {
-				code += "dp3 " + temp1 + ".x, " + sourceRegisters[uint(2)] + ", " + targetRegisters[uint(1)] + "\n" +
-						"mul " + temp1 + ", " + targetRegisters[uint(1)] + ", " + temp1 + ".x			 \n" +
-						"sub " + targetRegisters[uint(2)] + ", " + sourceRegisters[uint(2)] + ", " + temp1 + "\n";
+				code.dp3( temp1 ^x, sourceRegisters[uint(2)] ,targetRegisters[uint(1)] );
+				code.mul( temp1 ,   targetRegisters[uint(1)] ,temp1 ^x );
+				code.sub( targetRegisters[uint(2)] ,sourceRegisters[uint(2)], temp1 );
 			}
 
 			return code;

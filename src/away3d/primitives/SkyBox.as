@@ -1,12 +1,12 @@
 package away3d.primitives
 {
 
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.animators.IAnimator;
 	import away3d.arcane;
 	import away3d.bounds.NullBounds;
 	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
-	import away3d.core.base.SubGeometry;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.core.partition.EntityNode;
 	import away3d.core.partition.SkyBoxNode;
@@ -31,7 +31,7 @@ package away3d.primitives
 	public class SkyBox extends Entity implements IRenderable
 	{
 		// todo: remove SubGeometry, use a simple single buffer with offsets
-		private var _geometry : SubGeometry;
+		private var _geometry : VectorSubGeometry;
 		private var _material : SkyBoxMaterial;
 		private var _uvTransform : Matrix = new Matrix();
 		private var _animator : IAnimator;
@@ -48,12 +48,17 @@ package away3d.primitives
 		public function SkyBox(cubeMap : CubeTextureBase)
 		{
 			super();
-			_material = new SkyBoxMaterial(cubeMap);
+			_material = createMaterial(cubeMap);
 			_material.addOwner(this);
-			_geometry = new SubGeometry();
+			_geometry = new VectorSubGeometry();
 			_bounds = new NullBounds();
 			buildGeometry(_geometry);
 		}
+
+		protected function createMaterial(cubeMap : CubeTextureBase) : SkyBoxMaterial {
+			return new SkyBoxMaterial(cubeMap);
+		}
+
 
 		/**
 		 * Retrieves the VertexBuffer3D object that contains vertex positions.
@@ -145,11 +150,12 @@ package away3d.primitives
 				++_stackLen;
 			}
 
-			var mvp : Matrix3D = _mvpTransformStack[_mvpIndex];
-			mvp.identity();
-			mvp.appendScale(size, size, size);
-			mvp.appendTranslation(camera.x, camera.y, camera.z);
-			mvp.append(camera.viewProjection);
+			_mvpUnsafe = _mvpTransformStack[_mvpIndex];
+			_mvpUnsafe.identity();
+			_mvpUnsafe.appendScale(size, size, size);
+			_mvpUnsafe.appendTranslation(camera.x, camera.y, camera.z);
+			_mvpUnsafe.append(camera.viewProjection);
+			
 		}
 
 		/**
@@ -187,7 +193,7 @@ package away3d.primitives
 		/**
 		 * Builds the geometry that forms the SkyBox
 		 */
-		private function buildGeometry(target : SubGeometry):void
+		private function buildGeometry(target : VectorSubGeometry):void
 		{
 			var vertices : Vector.<Number>;
 			var indices : Vector.<uint>;
@@ -276,6 +282,14 @@ package away3d.primitives
 
 		public function get UVData():Vector.<Number> {
 			return _geometry.UVData;
+		}
+
+		public function getVertexColorBuffer(stage3DProxy : Stage3DProxy) : VertexBuffer3D {
+			return _geometry.getColorBuffer(stage3DProxy);
+		}
+
+		public function get colorBufferOffset() : int {
+			return _geometry.colorBufferOffset;
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -18,7 +20,7 @@ package away3d.materials.methods
 		private var _fogG : Number;
 		private var _fogB : Number;
 
-		public function FogMethod(minDistance : Number, maxDistance : Number, fogColor : uint = 0x808080)
+		public function FogMethod(minDistance : Number = 1000, maxDistance : Number = 5000, fogColor : uint = 0x808080)
 		{
 			super();
 			this.minDistance = minDistance;
@@ -84,22 +86,24 @@ package away3d.materials.methods
 			data[index+5] = 1/(_maxDistance-_minDistance);
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
 			var fogColor : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var fogData : ShaderRegisterElement = regCache.getFreeFragmentConstant();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk()
 			vo.fragmentConstantsIndex = fogColor.index*4;
-
-			code += "dp3 " + temp + ".w, " + _viewDirVaryingReg+".xyz	, " + _viewDirVaryingReg+".xyz\n" + 	// dist²
-					"sqt " + temp + ".w, " + temp + ".w										\n" + 	// dist
-					"sub " + temp + ".w, " + temp + ".w, " + fogData + ".x					\n" +
-					"mul " + temp + ".w, " + temp + ".w, " + fogData + ".y					\n" +
-					"sat " + temp + ".w, " + temp + ".w										\n" +
-					"sub " + temp + ".xyz, " + fogColor + ".xyz, " + targetReg + ".xyz\n" + 			// (fogColor- col)
-					"mul " + temp + ".xyz, " + temp + ".xyz, " + temp + ".w					\n" +			// (fogColor- col)*fogRatio
-					"add " + targetReg + ".xyz, " + targetReg + ".xyz, " + temp + ".xyz\n";			// fogRatio*(fogColor- col) + col
+			
+			var tp : uint = temp.value();
+			
+			code.dp3( tp ^w, 			_viewDirVaryingReg.value()^xyz	, _viewDirVaryingReg.value()^xyz  );
+			code.sqt( tp ^w, 			tp ^w									          );
+			code.sub( tp ^w, 			tp ^w,   fogData.value() ^x					          );
+			code.mul( tp ^w, 			tp ^w,   fogData.value() ^y					          );
+			code.sat( tp ^w, 			tp ^w									          );
+			code.sub( tp ^xyz,  		fogColor.value() ^xyz,  targetReg.value() ^xyz                 );
+			code.mul( tp ^xyz,  		tp ^xyz,   tp ^w					              );
+			code.add( targetReg.value() ^xyz, 	targetReg.value() ^xyz,   tp ^xyz                       );
 
 
 			return code;

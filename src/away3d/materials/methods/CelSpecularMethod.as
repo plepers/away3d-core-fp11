@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -83,19 +85,21 @@ package away3d.materials.methods
 		 * @param regCache The register cache used for the shader compilation.
 		 * @return The AGAL fragment code for the method.
 		 */
-		private function clampSpecular(methodVO : MethodVO, target : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		private function clampSpecular( code : ShaderChunk, methodVO : MethodVO, target : ShaderRegisterElement, regCache : ShaderRegisterCache) : void
 		{
-			return 	"sub " + target+".y, " + target+".w, " + _dataReg+".y\n" + // x - cutoff
-					"div " + target+".y, " + target+".y, " + _dataReg+".x\n" + // (x - cutoff)/epsilon
-					"sat " + target+".y, " + target+".y\n" +
-					"sge " + target+".w, " + target+".w, " + _dataReg+".y\n" +
-					"mul " + target+".w, " + target+".w, " + target+".y\n";
+			var tr : uint = target.value();
+			var dr : uint = _dataReg.value();
+			code.sub( tr^y, tr^w,  dr^y);
+			code.div( tr^y, tr^y,  dr^x);
+			code.sat( tr^y, tr^y       );
+			code.sge( tr^w, tr^w,  dr^y);
+			code.mul( tr^w, tr^w,  tr^y);
 		}
 
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			_dataReg = regCache.getFreeFragmentConstant();
 			vo.secondaryFragmentConstantsIndex = _dataReg.index*4;

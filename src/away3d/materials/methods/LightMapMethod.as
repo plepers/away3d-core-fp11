@@ -1,5 +1,6 @@
 package away3d.materials.methods
 {
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -61,21 +62,21 @@ package away3d.materials.methods
 			super.activate(vo, stage3DProxy);
 		}
 
-		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String;
+			var code : ShaderChunk=  new ShaderChunk();
 			var lightMapReg : ShaderRegisterElement = regCache.getFreeTextureReg();
 			var temp : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
 			vo.texturesIndex = lightMapReg.index;
 
-			code = getTexSampleCode(vo, temp, lightMapReg, _useSecondaryUV? _secondaryUVFragmentReg : _uvFragmentReg);
+			getTexSampleCode(code, vo, temp, lightMapReg, _useSecondaryUV? _secondaryUVFragmentReg : _uvFragmentReg, null, _texture.samplerType );
 
 			switch (_blendMode) {
 				case MULTIPLY:
-					code += "mul " + targetReg + ", " + targetReg + ", " + temp + "\n";
+					code.mul( targetReg.value(), targetReg.value() , temp.value() );
 					break;
 				case ADD:
-					code += "add " + targetReg + ", " + targetReg + ", " + temp + "\n";
+					code.add( targetReg.value(), targetReg.value() , temp.value() );
 					break;
 			}
 

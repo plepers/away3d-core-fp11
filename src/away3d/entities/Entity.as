@@ -33,6 +33,7 @@ package away3d.entities
 		arcane var _pickingCollider:IPickingCollider;
 
 		protected var _mvpTransformStack : Vector.<Matrix3D> = new Vector.<Matrix3D>();
+		protected var _mvpUnsafe : Matrix3D;
 		protected var _zIndices : Vector.<Number> = new Vector.<Number>();
 		protected var _mvpIndex : int = -1;
 		protected var _stackLen : uint;
@@ -282,11 +283,11 @@ package away3d.entities
 				_stackLen++;
 			}
 
-			var mvp : Matrix3D = _mvpTransformStack[_mvpIndex];
-			mvp.copyFrom(sceneTransform);
-			mvp.append(camera.viewProjection);
-			mvp.copyColumnTo(3, _pos);
-			_zIndices[_mvpIndex] = -_pos.z + 1000000 + _zOffset;
+			_mvpUnsafe = _mvpTransformStack[_mvpIndex];
+			_mvpUnsafe.copyFrom(sceneTransform);
+			_mvpUnsafe.append(camera.viewProjection);
+			_mvpUnsafe.copyColumnTo(3, _POS);
+			_zIndices[_mvpIndex] = -_POS.z;
 		}
 		
 		/**
@@ -295,7 +296,7 @@ package away3d.entities
 		 */
 		public function getModelViewProjectionUnsafe() : Matrix3D
 		{
-			return _mvpTransformStack[_mvpIndex];
+			return _mvpUnsafe;
 		}
 		
 		/**
@@ -304,6 +305,7 @@ package away3d.entities
 		public function popModelViewProjection() : void
 		{
 			--_mvpIndex;
+			if( _mvpIndex == -2 ) throw new Error( "away3d.entities.Entity - popModelViewProjection : " );
 		}
 		
 		/**
@@ -312,29 +314,6 @@ package away3d.entities
 		public function getEntityPartitionNode() : EntityNode
 		{
 			return _partitionNode ||= createEntityPartitionNode();
-		}
-		
-		public function isIntersectingRay(rayPosition : Vector3D, rayDirection : Vector3D) : Boolean
-		{
-			// convert ray to entity space
-			var localRayPosition:Vector3D = inverseSceneTransform.transformVector( rayPosition );
-			var localRayDirection:Vector3D = inverseSceneTransform.deltaTransformVector( rayDirection );
-			
-			// check for ray-bounds collision
-			var rayEntryDistance:Number = bounds.rayIntersection( localRayPosition, localRayDirection, pickingCollisionVO.localNormal ||= new Vector3D());
-			
-			if( rayEntryDistance < 0 )
-				return false;
-			
-			// Store collision data.
-			pickingCollisionVO.rayEntryDistance = rayEntryDistance;
-			pickingCollisionVO.localRayPosition = localRayPosition;
-			pickingCollisionVO.localRayDirection = localRayDirection;
-			pickingCollisionVO.rayPosition = rayPosition;
-			pickingCollisionVO.rayDirection = rayDirection;
-			pickingCollisionVO.rayOriginIsInsideBounds = rayEntryDistance == 0;
-			
-			return true;
 		}
 		
 		/**

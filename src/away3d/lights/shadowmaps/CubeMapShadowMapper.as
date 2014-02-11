@@ -66,7 +66,7 @@ package away3d.lights.shadowmaps
 		{
 			var maxDistance : Number = PointLight(_light)._fallOff;
 			var pos : Vector3D = _light.scenePosition;
-
+			
 			// todo: figure out which side needs rendering! each face which is not at least partly inside the view frustum needs no rendering
 			for (var i : uint = 0; i < 6; ++i) {
 				_lenses[i].far = maxDistance;

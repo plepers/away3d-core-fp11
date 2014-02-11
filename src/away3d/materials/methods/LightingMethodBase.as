@@ -1,8 +1,10 @@
-package away3d.materials.methods
-{
+package away3d.materials.methods {
+
 	import away3d.arcane;
 	import away3d.materials.utils.ShaderRegisterCache;
 	import away3d.materials.utils.ShaderRegisterElement;
+
+	import com.instagal.ShaderChunk;
 
 	use namespace arcane;
 
@@ -27,17 +29,17 @@ package away3d.materials.methods
 		 * @param regCache The register cache used during the compilation.
 		 * @private
 		 */
-		arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			return "";
+			return null;
 		}
 
 		/**
 		 * Get the fragment shader code that will generate the code relevant to a single light.
 		 */
-		arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			return "";
+			return null;
 		}
 
 		/**
@@ -47,10 +49,10 @@ package away3d.materials.methods
 		 * @param weightRegister A string representation of the register + component containing the current weight
 		 * @param regCache The register cache providing any necessary registers to the shader
 		 */
-		arcane function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : String, regCache : ShaderRegisterCache) : String
+		arcane function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : uint, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			// lightIndex will just continue on from code per light
-			return "";
+			return null;
 		}
 
 		/**
@@ -58,9 +60,9 @@ package away3d.materials.methods
 		 * @param regCache The register cache used during the compilation.
 		 * @private
 		 */
-		arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			return "";
+			return null;
 		}
 	}
 }

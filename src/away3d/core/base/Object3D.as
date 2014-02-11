@@ -82,6 +82,10 @@ package away3d.core.base
 		/** @private */
 		arcane var _controller:ControllerBase;
 		
+		private static const __POS : Vector3D = new Vector3D();
+		private static const __ROT : Vector3D = new Vector3D();
+		private static const __SCL : Vector3D = new Vector3D();
+		
 		private var _smallestNumber:Number = 0.0000000000000000000001;
 		private var _transformDirty : Boolean = true;
 		
@@ -103,12 +107,10 @@ package away3d.core.base
 		private var _rotationZ : Number = 0;
 		private var _eulers : Vector3D = new Vector3D();
 
-		private var _flipY : Matrix3D = new Matrix3D();
+		private var _flipY : Matrix3D;
 		private var _listenToPositionChanged : Boolean;
 		private var _listenToRotationChanged : Boolean;
 		private var _listenToScaleChanged : Boolean;
-
-		protected var _zOffset:int = 0;
 
 		private function invalidatePivot():void
 		{
@@ -216,7 +218,7 @@ package away3d.core.base
 			dispatchEvent(_scaleChanged);
 		}
 		
-		protected var _transform : Matrix3D = new Matrix3D();
+		protected var _transform : Matrix3D;
 		protected var _scaleX : Number = 1;
 		protected var _scaleY : Number = 1;
 		protected var _scaleZ : Number = 1;
@@ -225,10 +227,10 @@ package away3d.core.base
 		protected var _z : Number = 0;
 		protected var _pivotPoint : Vector3D = new Vector3D();
 		protected var _pivotZero : Boolean = true;
-		protected var _pos:Vector3D = new Vector3D();
-		protected var _rot:Vector3D = new Vector3D();
-		protected var _sca:Vector3D = new Vector3D();
-		protected var _transformComponents : Vector.<Vector3D>;
+		protected static const _POS:Vector3D = new Vector3D();
+		protected static const _ROT:Vector3D = new Vector3D();
+		protected static const _SCA:Vector3D = new Vector3D();
+		protected static const _COMPS : Vector.<Vector3D> = new <Vector3D>[ _POS, _ROT, _SCA ];
 
 		/**
 		 * An object that can contain any extra data.
@@ -428,21 +430,67 @@ package away3d.core.base
 			
 			return _transform;
 		}
-		
+//		
+//		public function set transform(val:Matrix3D) : void
+//		{
+//			//ridiculous matrix error
+//			var raw:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
+//			val.copyRawDataTo(raw);
+//			if (!raw[uint(0)]) {
+//				raw[uint(0)] = _smallestNumber;
+//				val.copyRawDataFrom(raw);
+//			}
+//			
+//			var elements : Vector.<Vector3D> = val.decompose();
+//			var vec : Vector3D;
+//			
+//			vec = elements[0];
+//			
+//			if (_x != vec.x || _y != vec.y || _z != vec.z) {
+//				_x = vec.x;
+//				_y = vec.y;
+//				_z = vec.z;
+//				
+//				invalidatePosition();
+//			}
+//			
+//			vec = elements[1];
+//			
+//			if (_rotationX != vec.x || _rotationY != vec.y || _rotationZ != vec.z) {
+//				_rotationX = vec.x;
+//				_rotationY = vec.y;
+//				_rotationZ = vec.z;
+//				
+//				invalidateRotation();
+//			}
+//			
+//			vec = elements[2];
+//			
+//			if (_scaleX != vec.x || _scaleY != vec.y || _scaleZ != vec.z) {
+//				_scaleX = vec.x;
+//				_scaleY = vec.y;
+//				_scaleZ = vec.z;
+//				
+//				invalidateScale();
+//			}
+//		}
+
+
 		public function set transform(val:Matrix3D) : void
 		{
 			//ridiculous matrix error
-			if (!val.rawData[uint(0)]) {
-				var raw:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
-				val.copyRawDataTo(raw);
+			var raw:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
+			val.copyRawDataTo(raw);
+			if (!raw[uint(0)]) {
 				raw[uint(0)] = _smallestNumber;
 				val.copyRawDataFrom(raw);
 			}
 			
-			var elements : Vector.<Vector3D> = val.decompose();
 			var vec : Vector3D;
 			
-			vec = elements[0];
+			Matrix3DUtils.decompose( val, __POS, __ROT, __SCL );
+			
+			vec = __POS;
 			
 			if (_x != vec.x || _y != vec.y || _z != vec.z) {
 				_x = vec.x;
@@ -452,7 +500,7 @@ package away3d.core.base
 				invalidatePosition();
 			}
 			
-			vec = elements[1];
+			vec = __ROT;
 			
 			if (_rotationX != vec.x || _rotationY != vec.y || _rotationZ != vec.z) {
 				_rotationX = vec.x;
@@ -462,7 +510,7 @@ package away3d.core.base
 				invalidateRotation();
 			}
 			
-			vec = elements[2];
+			vec = __SCL;
 			
 			if (_scaleX != vec.x || _scaleY != vec.y || _scaleZ != vec.z) {
 				_scaleX = vec.x;
@@ -493,9 +541,14 @@ package away3d.core.base
 		 */
 		public function get position() : Vector3D
 		{
-			transform.copyColumnTo(3, _pos);
+			transform.copyColumnTo(3, _POS);
 			
-			return _pos.clone();
+			return _POS.clone();
+		}
+
+		public function copyPosition( pos : Vector3D ) : void
+		{
+			transform.copyColumnTo(3, pos);
 		}
 
 		public function set position(value : Vector3D) : void
@@ -569,15 +622,9 @@ package away3d.core.base
 		 */
 		public function Object3D()
 		{
-			// Cached vector of transformation components used when
-			// recomposing the transform matrix in updateTransform()
-			_transformComponents = new Vector.<Vector3D>(3, true);
-			_transformComponents[0] = _pos;
-			_transformComponents[1] = _rot;
-			_transformComponents[2] = _sca;
 			
-			_transform.identity();
-			
+			_transform = new Matrix3D();
+			_flipY = new Matrix3D();
 			_flipY.appendScale(1, -1, 1);
 		}
 		
@@ -719,11 +766,11 @@ package away3d.core.base
 
 			transform.prependTranslation(x*len, y*len, z*len);
 			
-			_transform.copyColumnTo(3, _pos);
+			_transform.copyColumnTo(3, _POS);
 			
-			_x = _pos.x;
-			_y = _pos.y;
-			_z = _pos.z;
+			_x = _POS.x;
+			_y = _POS.y;
+			_z = _POS.z;
 			
 			invalidatePosition();
 		}
@@ -805,55 +852,67 @@ package away3d.core.base
 		 */
 		public function lookAt(target : Vector3D, upAxis : Vector3D = null) : void
 		{
-			var yAxis : Vector3D, zAxis : Vector3D, xAxis : Vector3D;
 			var raw : Vector.<Number>;
 			
 			upAxis ||= Vector3D.Y_AXIS;
 			
-			zAxis = target.subtract(position);
-			zAxis.normalize();
+			transform.copyColumnTo( 3, __VEC_1 );
 			
-			xAxis = upAxis.crossProduct(zAxis);
-			xAxis.normalize();
+			__VEC_Z.x = target.x - __VEC_1.x;
+			__VEC_Z.y = target.y - __VEC_1.y;
+			__VEC_Z.z = target.z - __VEC_1.z;
 			
-			if (xAxis.length < .05) {
-				xAxis = upAxis.crossProduct(Vector3D.Z_AXIS);
+			__VEC_Z.normalize();
+			
+			Vector3DUtils.crossProduct(upAxis, __VEC_Z, __VEC_X);
+			__VEC_X.normalize();
+			
+			if (__VEC_X.length < .05) {
+				Vector3DUtils.crossProduct(upAxis, Vector3D.Z_AXIS, __VEC_X);
 			}
 			
-			yAxis = zAxis.crossProduct(xAxis);
+			
+			Vector3DUtils.crossProduct(__VEC_Z, __VEC_X, __VEC_Y);
 			
 			raw = Matrix3DUtils.RAW_DATA_CONTAINER;
 			
-			raw[uint(0)] = _scaleX*xAxis.x;
-			raw[uint(1)] = _scaleX*xAxis.y;
-			raw[uint(2)] = _scaleX*xAxis.z;
+			raw[uint(0)] = _scaleX*__VEC_X.x;
+			raw[uint(1)] = _scaleX*__VEC_X.y;
+			raw[uint(2)] = _scaleX*__VEC_X.z;
 			raw[uint(3)] = 0;
 			
-			raw[uint(4)] = _scaleY*yAxis.x;
-			raw[uint(5)] = _scaleY*yAxis.y;
-			raw[uint(6)] = _scaleY*yAxis.z;
+			raw[uint(4)] = _scaleY*__VEC_Y.x;
+			raw[uint(5)] = _scaleY*__VEC_Y.y;
+			raw[uint(6)] = _scaleY*__VEC_Y.z;
 			raw[uint(7)] = 0;
 			
-			raw[uint(8)] = _scaleZ*zAxis.x;
-			raw[uint(9)] = _scaleZ*zAxis.y;
-			raw[uint(10)] = _scaleZ*zAxis.z;
+			raw[uint(8)] = _scaleZ*__VEC_Z.x;
+			raw[uint(9)] = _scaleZ*__VEC_Z.y;
+			raw[uint(10)] = _scaleZ*__VEC_Z.z;
 			raw[uint(11)] = 0;
-			
-			raw[uint(12)] = _x;
-			raw[uint(13)] = _y;
-			raw[uint(14)] = _z;
+
+			raw[uint(12)] = __VEC_1.x;
+			raw[uint(13)] = __VEC_1.y;
+			raw[uint(14)] = __VEC_1.z;
 			raw[uint(15)] = 1;
 			
 			_transform.copyRawDataFrom(raw);
 			
 			transform = transform;
 			
-			if (zAxis.z < 0) {
+			if (__VEC_Z.z < 0) {
 				rotationY = (180 - rotationY);
 				rotationX -= 180;
 				rotationZ -= 180;
 			}
 		}
+		
+		
+		public static const __VEC_1 : Vector3D = new Vector3D();
+		public static const __VEC_X : Vector3D = new Vector3D();
+		public static const __VEC_Y : Vector3D = new Vector3D();
+		public static const __VEC_Z : Vector3D = new Vector3D();
+		
 		
 		/**
 		 * Cleans up any resources used by the current object.
@@ -881,19 +940,19 @@ package away3d.core.base
 
 		protected function updateTransform() : void
 		{
-			_pos.x = _x;
-			_pos.y = _y;
-			_pos.z = _z;
+			_POS.x = _x;
+			_POS.y = _y;
+			_POS.z = _z;
 
-			_rot.x = _rotationX;
-			_rot.y = _rotationY;
-			_rot.z = _rotationZ;
+			_ROT.x = _rotationX;
+			_ROT.y = _rotationY;
+			_ROT.z = _rotationZ;
 			
-			_sca.x = _scaleX;
-			_sca.y = _scaleY;
-			_sca.z = _scaleZ;
+			_SCA.x = _scaleX;
+			_SCA.y = _scaleY;
+			_SCA.z = _scaleZ;
 			
-			_transform.recompose(_transformComponents);
+			_transform.recompose(_COMPS);
 			
 			if (!_pivotZero) {
 				_transform.prependTranslation(-_pivotPoint.x, -_pivotPoint.y, -_pivotPoint.z);
@@ -904,14 +963,6 @@ package away3d.core.base
 			_positionDirty = false;
 			_rotationDirty = false;
 			_scaleDirty = false;
-		}
-
-		public function get zOffset():int {
-			return _zOffset;
-		}
-
-		public function set zOffset( value:int ):void {
-			_zOffset = value;
 		}
 	}
 }

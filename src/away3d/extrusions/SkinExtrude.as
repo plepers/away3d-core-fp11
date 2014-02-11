@@ -2,7 +2,7 @@ package away3d.extrusions
 {
 	import away3d.bounds.BoundingVolumeBase;
 	import away3d.core.base.Geometry;
-	import away3d.core.base.SubGeometry;
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.core.base.SubMesh;
 	import away3d.core.base.data.UV;
 	import away3d.core.base.data.Vertex;
@@ -16,7 +16,7 @@ package away3d.extrusions
 	{
 		private const LIMIT:uint = 196605;
 		private var _tmpVectors:Vector.<Number>;
-		private var _subGeometry:SubGeometry;
+		private var _subGeometry:VectorSubGeometry;
 		private var _indice:uint;
 		private var _uva:UV;
 		private var _uvb:UV;
@@ -51,7 +51,7 @@ package away3d.extrusions
         public function SkinExtrude(material : MaterialBase, profiles:Vector.<Vector.<Vector3D>>, subdivision:uint = 1, centerMesh:Boolean = false, closeShape:Boolean = false, coverAll:Boolean = false, flip:Boolean = false)
         {
 		 	var geom : Geometry = new Geometry();
-			_subGeometry = new SubGeometry();
+			_subGeometry = new VectorSubGeometry();
 			geom.addSubGeometry(_subGeometry);
 			super(geom, material);
 			
@@ -271,7 +271,7 @@ package away3d.extrusions
 						_subGeometry.updateIndexData(_indices);
 						_subGeometry.updateUVData(_uvs);
 						
-						_subGeometry = new SubGeometry();
+						_subGeometry = new VectorSubGeometry();
 						this.geometry.addSubGeometry(_subGeometry);
 						_subGeometry.autoDeriveVertexNormals = true;
             			_subGeometry.autoDeriveVertexTangents = true;

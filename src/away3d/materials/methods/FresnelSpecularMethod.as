@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.utils.ShaderRegisterCache;
@@ -82,7 +84,7 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
 			_dataReg = regCache.getFreeFragmentConstant();
 			vo.secondaryFragmentConstantsIndex = _dataReg.index*4;
@@ -96,21 +98,24 @@ package away3d.materials.methods
 		 * @param regCache The register cache used for the shader compilation.
 		 * @return The AGAL fragment code for the method.
 		 */
-		private function modulateSpecular(vo : MethodVO, target : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		private function modulateSpecular(code : ShaderChunk, vo : MethodVO, target : ShaderRegisterElement, regCache : ShaderRegisterCache) : void
 		{
-			var code : String = "";
-
+			
+			var vdr : uint = _viewDirFragmentReg.value();
+			var nrm : uint = _normalFragmentReg.value();
+			var ddr : uint = _dataReg.value();
+			var tgt : uint = target.value();
+			
 			// use view dir and normal fragment .w as temp
             // use normal or half vector? :s
-            code += "dp3 " + _viewDirFragmentReg+".w, " + _viewDirFragmentReg+".xyz, " + (_incidentLight? target+".xyz\n" : _normalFragmentReg+".xyz\n") +   // dot(V, H)
-            		"sub " + _viewDirFragmentReg+".w, " + _dataReg+".z, " + _viewDirFragmentReg+".w\n" +             // base = 1-dot(V, H)
-            		"pow " + _normalFragmentReg+".w, " + _viewDirFragmentReg+".w, " + _dataReg+".y\n" +             // exp = pow(base, 5)
-					"sub " + _viewDirFragmentReg+".w, " + _dataReg+".z, " + _normalFragmentReg+".w\n" +             // 1 - exp
-					"mul " + _viewDirFragmentReg+".w, " + _dataReg+".x, " + _viewDirFragmentReg+".w\n" +             // f0*(1 - exp)
-					"add " + _viewDirFragmentReg+".w, " + _normalFragmentReg+".w, " + _viewDirFragmentReg+".w\n" +          // exp + f0*(1 - exp)
-					"mul " + target+".w, " + target+".w, " + _viewDirFragmentReg+".w\n";
+            code.dp3( vdr^w,    vdr^xyz,  (_incidentLight? tgt^xyz : nrm^xyz ) );
+            code.sub( vdr^w,    ddr^z,    vdr^w);
+            code.pow( nrm^w,    vdr^w,    ddr^y);
+			code.sub( vdr^w,    ddr^z,    nrm^w);
+			code.mul( vdr^w,    ddr^x,    vdr^w);
+			code.add( vdr^w,    nrm^w,    vdr^w);
+			code.mul( tgt^w, 	tgt^w,    tgt^w);
 
-			return code;
 		}
 
 	}

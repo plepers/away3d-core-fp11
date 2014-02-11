@@ -1,6 +1,11 @@
 package away3d.core.managers
 {
+	import flash.display3D.Context3DProfile;
 	import flash.display.Shape;
+	import away3d.arcane;
+	import away3d.debug.Debug;
+	import away3d.events.Stage3DEvent;
+	
 	import flash.display.Stage3D;
 	import flash.display3D.Context3D;
 	import flash.display3D.Context3DRenderMode;
@@ -11,10 +16,6 @@ package away3d.core.managers
 	import flash.events.EventDispatcher;
 	import flash.geom.Rectangle;
 	import flash.system.System;
-	
-	import away3d.arcane;
-	import away3d.debug.Debug;
-	import away3d.events.Stage3DEvent;
 
 	use namespace arcane;
 
@@ -57,25 +58,6 @@ package away3d.core.managers
 		private var _viewPort : Rectangle;
 		private var _enterFrame : Event;
 		private var _exitFrame : Event;
-		private var _viewportUpdated : Stage3DEvent;
-		private var _viewportDirty : Boolean;
-		
-		private function notifyViewportUpdated():void
-		{
-			if (_viewportDirty)
-				return;
-			
-			_viewportDirty = true;
-			
-			if (!hasEventListener(Stage3DEvent.VIEWPORT_UPDATED))
-				return;
-			
-			//TODO: investigate bug causing coercion error
-			//if (!_viewportUpdated)
-				_viewportUpdated = new Stage3DEvent(Stage3DEvent.VIEWPORT_UPDATED);
-			
-			dispatchEvent(_viewportUpdated);
-		}
 		
 		private function notifyEnterFrame():void
 		{
@@ -107,7 +89,7 @@ package away3d.core.managers
 		 * @param stage3DManager
 		 * @param forceSoftware Whether to force software mode even if hardware acceleration is available.
 		 */
-		public function Stage3DProxy(stage3DIndex : int, stage3D : Stage3D, stage3DManager : Stage3DManager, forceSoftware : Boolean = false)
+		public function Stage3DProxy(stage3DIndex : int, stage3D : Stage3D, stage3DManager : Stage3DManager, forceSoftware : Boolean = false, constrained : Boolean = false )
 		{
 			_stage3DIndex = stage3DIndex;
 			_stage3D = stage3D;
@@ -120,7 +102,7 @@ package away3d.core.managers
 			
 			// whatever happens, be sure this has highest priority
 			_stage3D.addEventListener(Event.CONTEXT3D_CREATE, onContext3DUpdate, false, 1000, false);
-			requestContext(forceSoftware);
+			requestContext(forceSoftware, constrained);
 		}
 
 		/**
@@ -186,15 +168,8 @@ package away3d.core.managers
 		 */
 		public function configureBackBuffer(backBufferWidth : int, backBufferHeight : int, antiAlias : int, enableDepthAndStencil : Boolean) : void
 		{
-			var oldWidth:uint = _backBufferWidth;
-			var oldHeight:uint = _backBufferHeight;
-			
-			_backBufferWidth = _viewPort.width = backBufferWidth;
-			_backBufferHeight = _viewPort.height = backBufferHeight;
-			
-			if (oldWidth != _backBufferWidth || oldHeight != _backBufferHeight)
-				notifyViewportUpdated();
-			
+			_backBufferWidth = backBufferWidth;
+			_backBufferHeight = backBufferHeight;
 			_antiAlias = antiAlias;
 			_enableDepthAndStencil = enableDepthAndStencil;
 
@@ -232,7 +207,6 @@ package away3d.core.managers
 			_renderTarget = target;
 			_renderSurfaceSelector = surfaceSelector;
 			_enableDepthAndStencil = enableDepthAndStencil;
-
 			if (target)
 				_context3D.setRenderToTexture(target, enableDepthAndStencil, _antiAlias, surfaceSelector);
 			else
@@ -371,12 +345,7 @@ package away3d.core.managers
 
 		public function set x(value : Number) : void
 		{
-			if (_viewPort.x == value)
-				return;
-			
 			_stage3D.x = _viewPort.x = value;
-			
-			notifyViewportUpdated();
 		}
 
 		/**
@@ -389,12 +358,7 @@ package away3d.core.managers
 
 		public function set y(value : Number) : void
 		{
-			if (_viewPort.y == value)
-				return;
-			
 			_stage3D.y = _viewPort.y = value;
-			
-			notifyViewportUpdated();
 		}
 
 
@@ -402,38 +366,28 @@ package away3d.core.managers
 		 * The width of the Stage3D.
 		 */
 		public function get width() : int
-		{
+		{ 
 			return _backBufferWidth;
 		}
 
 		public function set width(width : int) : void
-		{
-			if (_viewPort.width == width)
-				return;
-			
+		{ 
 			_backBufferWidth = _viewPort.width = width; 
 			_backBufferDirty = true;
-			
-			notifyViewportUpdated();
 		}
 
 		/**
 		 * The height of the Stage3D.
 		 */
 		public function get height() : int
-		{
+		{ 
 			return _backBufferHeight;
 		}
 		
 		public function set height(height : int) : void
-		{
-			if (_viewPort.height == height)
-				return;
-			
+		{ 
 			_backBufferHeight = _viewPort.height = height; 
 			_backBufferDirty = true;
-			
-			notifyViewportUpdated();
 		}
 
 		/**
@@ -454,9 +408,7 @@ package away3d.core.managers
 		 * A viewPort rectangle equivalent of the Stage3D size and position.
 		 */
 		public function get viewPort() : Rectangle
-		{
-			_viewportDirty = false;
-			
+		{ 
 			return _viewPort;
 		}
 
@@ -532,7 +484,7 @@ package away3d.core.managers
 		/**
 		 * Requests a Context3D object to attach to the managed Stage3D.
 		 */
-		private function requestContext(forceSoftware : Boolean = false) : void
+		private function requestContext(forceSoftware : Boolean = false, constrained : Boolean = false) : void
 		{
 			// If forcing software, we can be certain that the
 			// returned Context3D will be running software mode.
@@ -540,7 +492,7 @@ package away3d.core.managers
 			// old value (will likely be same if re-requesting.)
 			_usesSoftwareRendering ||= forceSoftware;
 			
-			_stage3D.requestContext3D(forceSoftware? Context3DRenderMode.SOFTWARE : Context3DRenderMode.AUTO);
+			_stage3D.requestContext3D(forceSoftware? Context3DRenderMode.SOFTWARE : Context3DRenderMode.AUTO, constrained ? Context3DProfile.BASELINE_CONSTRAINED:Context3DProfile.BASELINE);
 			_contextRequested = true;
 		}
 		

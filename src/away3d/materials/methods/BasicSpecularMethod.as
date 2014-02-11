@@ -1,5 +1,8 @@
 package away3d.materials.methods
 {
+	import com.instagal.Tex;
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -160,9 +163,9 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentPreLightingCode(vo : MethodVO, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk;
 
 			if (vo.numLights > 0) {
 				_specularDataRegister = regCache.getFreeFragmentConstant();
@@ -173,7 +176,8 @@ package away3d.materials.methods
 					regCache.addFragmentTempUsages(_specularTexData, 1);
 					_specularTextureRegister = regCache.getFreeTextureReg();
 					vo.texturesIndex = _specularTextureRegister.index;
-					code = getTexSampleCode(vo, _specularTexData, _specularTextureRegister);
+					code = new ShaderChunk();
+					getTexSampleCode(code, vo, _specularTexData, _specularTextureRegister, null, 0, _texture.samplerType);
 				}
 				else
 					_specularTextureRegister = null;
@@ -188,9 +192,9 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : String
+		override arcane function getFragmentCodePerLight(vo : MethodVO, lightIndex : int, lightDirReg : ShaderRegisterElement, lightColReg : ShaderRegisterElement, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 			
 			if (lightIndex > 0) {
@@ -199,35 +203,30 @@ package away3d.materials.methods
 			}
 			else t = _totalLightColorReg;
 			
+			var tr : uint = t.value();
+			
 			switch (_shadingModel) {
 				case SpecularShadingModel.BLINN_PHONG:
 					
 					// half vector
-					code += "add " + t + ".xyz, " + lightDirReg + ".xyz, " + _viewDirFragmentReg + ".xyz\n" +
-							"nrm " + t + ".xyz, " + t + ".xyz\n" +
-							"dp3 " + t + ".w, " + _normalFragmentReg + ".xyz, " + t + ".xyz\n" +
-							"sat " + t + ".w, " + t + ".w\n";
+					code.add( tr ^ xyz, lightDirReg.value()^xyz, _viewDirFragmentReg.value()^xyz);
+					code.nrm( tr ^ xyz, tr ^ xyz);
+					code.dp3( tr ^ w,   _normalFragmentReg.value() ^xyz, tr ^xyz);
+					code.sat( tr ^ w,   tr ^ w );
 					
 					break;
 				case SpecularShadingModel.PHONG:
 					
 					// phong model
-					code += "dp3 " + t + ".w, " + lightDirReg + ".xyz, " + _normalFragmentReg + ".xyz\n" + // sca1 = light.normal
-					
-							//find the reflected light vector R
-							"add " + t + ".w, " + t + ".w, " + t + ".w\n" + // sca1 = sca1*2
-							"mul " + t + ".xyz, " + _normalFragmentReg + ".xyz, " + t + ".w\n" + // vec1 = normal*sca1
-							"sub " + t + ".xyz, " + t + ".xyz, " + lightDirReg + ".xyz\n" + // vec1 = vec1 - light (light vector is negative)
-							
-							//smooth the edge as incidence angle approaches 90
-							"add" + t + ".w, " + t + ".w, " + _normalFragmentReg + ".w\n" + // sca1 = sca1 + smoothtep;
-							//"div" + t + ".w, " + t + ".w, " + _specularDataRegister2 + ".z\n" + // sca1 = sca1/smoothtep;
-							"sat " + t + ".w, " + t + ".w\n" + // sca1 range 0 - 1
-							"mul " + t + ".xyz, " + t + ".xyz, " + t + ".w\n" + // vec1 = vec1*sca1
-							
-							//find the dot product between R and V
-							"dp3 " + t + ".w, " + t + ".xyz, " + _viewDirFragmentReg + ".xyz\n" + // sca1 = vec1.view
-							"sat " + t + ".w, " + t + ".w\n";
+					code.dp3( tr ^ w, 	lightDirReg.value() 		^ xyz, 	_normalFragmentReg.value() ^ xyz);
+					code.add( tr ^ w, 	tr 					^ w, 	tr ^ w);
+					code.mul( tr ^ xyz, _normalFragmentReg.value() 	^ xyz, 	tr ^ w);
+					code.sub( tr ^ xyz, tr 					^ xyz, 	lightDirReg.value() ^ xyz);
+					code.add( tr ^ w, 	tr 					^ w, 	_normalFragmentReg.value() ^ w);
+					code.sat( tr ^ w, 	tr 					^ w); 
+					code.mul( tr ^ xyz, tr 					^ xyz, 	tr ^ w);
+					code.dp3( tr ^ w, 	tr 					^ xyz, 	_viewDirFragmentReg.value() ^ xyz);
+					code.sat( tr ^ w, 	tr 					^ w);
 					
 					break;
 				default:
@@ -235,21 +234,21 @@ package away3d.materials.methods
 			
 			if (_useTexture) {
 				// apply gloss modulation from texture
-				code += "mul " + _specularTexData + ".w, " + _specularTexData + ".y, " + _specularDataRegister + ".w\n" +
-						"pow " + t + ".w, " + t + ".w, " + _specularTexData + ".w\n";
+				code.mul( _specularTexData.value() ^ w, _specularTexData.value() ^ y, _specularDataRegister.value() ^ w );
+				code.pow( tr ^ w, tr ^ w, _specularTexData.value() ^ w );
 			}
 			else
-				code += "pow " + t + ".w, " + t + ".w, " + _specularDataRegister + ".w\n";
+				code.pow( tr ^ w, tr ^ w, _specularDataRegister.value() ^ w );
 			
 			// attenuate
-			code += "mul " + t + ".w, " + t + ".w, " + lightDirReg + ".w\n";
+			code.mul( tr ^ w, tr ^ w, lightDirReg.value() ^ w );
 
-			if (_modulateMethod != null) code += _modulateMethod(vo, t, regCache);
+			if (_modulateMethod != null) _modulateMethod(code, vo, t, regCache);
 
-			code += "mul " + t + ".xyz, " + lightColReg + ".xyz, " + t + ".w\n";
+			code.mul( tr ^ xyz, lightColReg.value()  ^ xyz, tr ^ w );
 				
 			if (lightIndex > 0) {
-				code += "add " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + t + ".xyz\n";
+				code.add( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, tr ^ xyz );
 				regCache.removeFragmentTempUsage(t);
 			}
 
@@ -259,9 +258,9 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		arcane override function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : String, regCache : ShaderRegisterCache) : String
+		arcane override function getFragmentCodePerProbe(vo : MethodVO, lightIndex : int, cubeMapReg : ShaderRegisterElement, weightRegister : uint, regCache : ShaderRegisterCache) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var t : ShaderRegisterElement;
 
 			// todo: add property that defines the indexing mode of the probe map: through view vector or reflectance vector
@@ -274,12 +273,13 @@ package away3d.materials.methods
 			else {
 				t = _totalLightColorReg;
 			}
-
-			code += "tex " + t + ", " + _viewDirFragmentReg + ", " + cubeMapReg + " <cube,linear,miplinear>\n" +
-					"mul " + t + ", " + t + ", " + weightRegister + "\n";
+			var tr : uint = t.value();
+			
+			code.tex( tr , _viewDirFragmentReg.value() , cubeMapReg.value() | Tex.CUBE | Tex.LINEAR | Tex.MIPLINEAR );
+			code.mul( tr , tr, weightRegister );
 
 			if (lightIndex > 0) {
-				code += "add " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + t + ".xyz\n";
+				code.add( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, tr ^ xyz );
 				regCache.removeFragmentTempUsage(t);
 			}
 
@@ -290,25 +290,25 @@ package away3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		override arcane function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 
 			if (vo.numLights == 0)
 				return code;
 
 			if (_shadowRegister)
-				code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
+				code.mul( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, _shadowRegister.value() ^ w );
 
 			if (_useTexture) {
 				// apply strength modulation from texture
-				code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _specularTexData + ".x\n";
+				code.mul( _totalLightColorReg.value() ^ xyz, _totalLightColorReg.value() ^ xyz, _specularTexData.value() ^ x );
 				regCache.removeFragmentTempUsage(_specularTexData);
 			}
 
 			// apply material's specular reflection
-			code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _specularDataRegister + ".xyz\n" +
-					"add " + targetReg + ".xyz, " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz\n";
+			code.mul( _totalLightColorReg.value() ^xyz, _totalLightColorReg.value() ^xyz, _specularDataRegister.value() ^xyz );
+			code.add( targetReg.value() ^xyz, targetReg.value() ^xyz, _totalLightColorReg.value() ^xyz );
 			regCache.removeFragmentTempUsage(_totalLightColorReg);
 
 			return code;

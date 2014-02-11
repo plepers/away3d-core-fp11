@@ -585,6 +585,22 @@ package away3d.containers
 			if (!child._explicitPartition)
 				child.implicitPartition = null;
 		}
+
+		public function removeChildAt(index:uint):ObjectContainer3D
+		{
+			if (index > _children.length )
+				throw new Error("Out of bound index");
+			
+			var child:ObjectContainer3D = _children[index];
+			
+			_children.splice(index, 1);
+			
+			child.setParent(null);
+			
+			if (!child._explicitPartition)
+				child.implicitPartition = null;
+			return child;
+		}
 		
 		/**
 		 * Retrieves the child object at the given index.

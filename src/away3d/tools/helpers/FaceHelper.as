@@ -1,5 +1,6 @@
 package away3d.tools.helpers
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.arcane;
 	import away3d.core.base.SubGeometry;
 	import away3d.core.base.data.UV;
@@ -21,16 +22,16 @@ package away3d.tools.helpers
 		
 		public static function addFace(mesh:Mesh, v0:Vertex, v1:Vertex, v2:Vertex, uv0:UV, uv1:UV, uv2:UV, subGeomIndice:uint):void
 		{
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			if(mesh.geometry.subGeometries.length == 0){
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				mesh.geometry.addSubGeometry(subGeom);
 			}
 
 			if(mesh.geometry.subGeometries.length-1 < subGeomIndice)
 				throw new Error("no subGeometry at index provided:"+subGeomIndice);
 			
-			subGeom = mesh.geometry.subGeometries[subGeomIndice];
+			subGeom = mesh.geometry.subGeometries[subGeomIndice] as VectorSubGeometry;
 			 
 			var vertices:Vector.<Number> = subGeom.vertexData || new Vector.<Number>();
 			var indices:Vector.<uint>;
@@ -42,7 +43,7 @@ package away3d.tools.helpers
 				indices = Vector.<uint>([0,1,2]);
 				vertices = Vector.<Number>([v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z]);
 				uvs = Vector.<Number>([uv0.u, uv0.v, uv1.u, uv1.v, uv2.u, uv2.v]);
-				subGeom = new SubGeometry();
+				subGeom = new VectorSubGeometry();
 				mesh.geometry.addSubGeometry(subGeom);
 
 			} else {
@@ -74,7 +75,7 @@ package away3d.tools.helpers
 		public static function removeFace(mesh:Mesh, index:uint, subGeomIndice:uint):void
 		{
 			var pointer:uint = index*3;
-			var subGeom:SubGeometry = getSubGeometry(mesh, subGeomIndice);
+			var subGeom:VectorSubGeometry = getSubGeometry(mesh, subGeomIndice);
 			
 			var indices:Vector.<uint> = subGeom.indexData.concat();
 			
@@ -211,7 +212,7 @@ package away3d.tools.helpers
 		public static function splitFace(mesh:Mesh, indice:uint, subGeomIndice:uint, side:uint = 0):void
 		{
 			var pointer:uint = indice*3;
-			var subGeom:SubGeometry = getSubGeometry(mesh, subGeomIndice);
+			var subGeom:VectorSubGeometry = getSubGeometry(mesh, subGeomIndice);
 			var indices:Vector.<uint> = subGeom.indexData.concat();
 
 			if(pointer >  indices.length -3)
@@ -299,7 +300,7 @@ package away3d.tools.helpers
 		public static function triFace(mesh:Mesh, indice:uint, subGeomIndice:uint):void
 		{
 			var pointer:uint = indice*3;
-			var subGeom:SubGeometry = getSubGeometry(mesh, subGeomIndice);
+			var subGeom:VectorSubGeometry = getSubGeometry(mesh, subGeomIndice);
 			var indices:Vector.<uint> = subGeom.indexData.concat();
 
 			if(pointer >  indices.length -3)
@@ -366,7 +367,7 @@ package away3d.tools.helpers
 		public static function quarterFace(mesh:Mesh, indice:uint, subGeomIndice:uint):void
 		{
 			var pointer:uint = indice*3;
-			var subGeom:SubGeometry = getSubGeometry(mesh, subGeomIndice);
+			var subGeom:VectorSubGeometry = getSubGeometry(mesh, subGeomIndice);
 			var indices:Vector.<uint> = subGeom.indexData.concat();
 
 			if(pointer >  indices.length -3)
@@ -475,7 +476,7 @@ package away3d.tools.helpers
 			var faceNumber:uint;
 			var j:uint;
 			for(var i:uint = 0;i<subGeoms.length;++i){
-				indices = subGeoms[i].indexData;
+				indices = VectorSubGeometry(subGeoms[i]).indexData;
 				faceNumber = 0;
 				for(j = 0; j< indices.length; j+=3){
 					switch(methodID){
@@ -496,7 +497,7 @@ package away3d.tools.helpers
 			}
 		}
 		
-		private static function updateSubGeometryData(subGeometry:SubGeometry, vertices:Vector.<Number>, indices:Vector.<uint>, uvs:Vector.<Number>, normals:Vector.<Number> = null, tangents:Vector.<Number> = null):void
+		private static function updateSubGeometryData(subGeometry:VectorSubGeometry, vertices:Vector.<Number>, indices:Vector.<uint>, uvs:Vector.<Number>, normals:Vector.<Number> = null, tangents:Vector.<Number> = null):void
 		{
 			subGeometry.updateVertexData(vertices);
 			subGeometry.updateIndexData(indices);
@@ -507,14 +508,14 @@ package away3d.tools.helpers
 				subGeometry.updateVertexTangentData(tangents);
 		}
 		
-		private static function getSubGeometry(mesh:Mesh, subGeomIndice:uint):SubGeometry
+		private static function getSubGeometry(mesh:Mesh, subGeomIndice:uint):VectorSubGeometry
 		{
 			var subGeoms:Vector.<SubGeometry> = mesh.geometry.subGeometries;
 			
 			if(subGeomIndice>subGeoms.length-1)
 				throw new Error("ERROR >> subGeomIndice is out of range!");
 			
-			return subGeoms[subGeomIndice];
+			return subGeoms[subGeomIndice] as VectorSubGeometry;
 		}
 		
 		private static function getUsedIndice(vertices:Vector.<Number>, x:Number, y:Number, z:Number):int

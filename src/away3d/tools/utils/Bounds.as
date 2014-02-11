@@ -1,5 +1,6 @@
 package away3d.tools.utils
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.arcane;
 	import away3d.containers.ObjectContainer3D;
 	import away3d.core.base.SubGeometry;
@@ -201,14 +202,14 @@ package away3d.tools.utils
 				var geometries:Vector.<SubGeometry> = m.geometry.subGeometries;
 				var numSubGeoms:int = geometries.length;
 				
-				var subGeom:SubGeometry;
+				var subGeom:VectorSubGeometry;
 				var vertices:Vector.<Number>;
 	
 				var j : uint;
 				var vecLength : uint;
 				
 				for (var i : uint = 0; i < numSubGeoms; ++i){
-					subGeom = geometries[i];
+					subGeom = geometries[i] as VectorSubGeometry;
 					vertices = subGeom.vertexData;
 					vecLength = vertices.length;
 					for (j = 0; j < vecLength; j+=3){

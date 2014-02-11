@@ -1,5 +1,7 @@
 package away3d.materials.methods
 {
+	import com.instagal.regs.*;
+	import com.instagal.ShaderChunk;
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.materials.methods.MethodVO;
@@ -53,21 +55,23 @@ package away3d.materials.methods
 			_detailTexture = detail;
 		}
 
-		arcane override function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		arcane override function getFragmentPostLightingCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : ShaderChunk
 		{
-			var code : String = "";
+			var code : ShaderChunk = new ShaderChunk();
 			var albedo : ShaderRegisterElement;
 			var scaleRegister : ShaderRegisterElement;
 			var detailScaleRegister : ShaderRegisterElement;
 			var detailBlendFactorRegister : ShaderRegisterElement;
 			var detailTexRegister : ShaderRegisterElement;
-
+			
+			var tlr : uint = _totalLightColorReg.value();
+			var tgt : uint = targetReg.value();
 			// incorporate input from ambient
 			if (vo.numLights > 0) {
 				if (_shadowRegister)
-					code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
-				code += "add " + targetReg + ".xyz, " + _totalLightColorReg + ".xyz, " + targetReg + ".xyz\n" +
-						"sat " + targetReg + ".xyz, " + targetReg + ".xyz\n";
+					code.mul( tlr ^xyz, tlr ^xyz, _shadowRegister.value() ^w );
+				code.add( tgt ^xyz, tlr ^xyz,  tgt ^xyz );
+				code.sat( tgt ^xyz, tgt ^xyz );
 				regCache.removeFragmentTempUsage(_totalLightColorReg);
 
 				albedo = regCache.getFreeFragmentVectorTemp();
@@ -90,10 +94,11 @@ package away3d.materials.methods
 			}
 
 			var uv : ShaderRegisterElement = regCache.getFreeFragmentVectorTemp();
+			var uvr : uint = uv.value();
 			regCache.addFragmentTempUsages(uv, 1);
 
-			code += "mul " + uv + ", " + _uvFragmentReg + ", " + scaleRegister + ".x\n" +
-					getSplatSampleCode(vo, albedo, _diffuseInputRegister, uv);
+			code.mul( uvr , _uvFragmentReg.value() , scaleRegister.value() ^x );
+			getSplatSampleCode(code, vo, albedo, _diffuseInputRegister, uv);
 
 			if (_detailTexture) {
 				code += "mul " + uv + ", " + _uvFragmentReg + ", " + detailScaleRegister + ".x\n" +
@@ -170,7 +175,7 @@ package away3d.materials.methods
 				throw new Error("Alpha threshold not supported for TerrainDiffuseMethod");
 		}
 
-		protected function getSplatSampleCode(vo : MethodVO, targetReg : ShaderRegisterElement, inputReg : ShaderRegisterElement, uvReg : ShaderRegisterElement = null) : String
+		protected function getSplatSampleCode( code : ShaderChunk, vo : MethodVO, targetReg : ShaderRegisterElement, inputReg : ShaderRegisterElement, uvReg : ShaderRegisterElement = null) : String
 		{
 			// TODO: not used
 			// var wrap : String = "wrap";

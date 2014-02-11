@@ -1,5 +1,6 @@
 package away3d.tools.commands
 {
+	import away3d.core.base.VectorSubGeometry;
 	import away3d.arcane;
 	import away3d.containers.ObjectContainer3D;
 	import away3d.core.base.Geometry;
@@ -113,12 +114,12 @@ package away3d.tools.commands
 			var j : uint;
 			var i : uint;
 			var vecLength : uint;
-			var subGeom:SubGeometry;
+			var subGeom:VectorSubGeometry;
 			var oriCount:uint = 0;
 			var destCount:uint = 0;
 			
 			for (i = 0; i < numSubGeoms; ++i){
-				subGeom = SubGeometry(geometries[i]);
+				subGeom = SubGeometry(geometries[i]) as VectorSubGeometry;
 				vertices = subGeom.vertexData;
 				indices = subGeom.indexData;
 				uvs = subGeom.UVData;
@@ -146,7 +147,7 @@ package away3d.tools.commands
 						nnormals = new Vector.<Number>();
 						ntangents = new Vector.<Number>();
 						vectors.push([nvertices,nindices,nuvs, nnormals,ntangents]);
-						subGeom = new SubGeometry();
+						subGeom = new VectorSubGeometry();
 						geometry.addSubGeometry(subGeom);
 					}
 						
@@ -195,7 +196,7 @@ package away3d.tools.commands
 			var fNormal:Vector3D = new Vector3D();
 			
 			for (i = 0; i < numSubGeoms; ++i){
-				subGeom = SubGeometry(geometries[i]);
+				subGeom = VectorSubGeometry(geometries[i]);
 				vertices = vectors[i][0];
 				subGeom.updateVertexData(vertices);
 				indices = vectors[i][1];
